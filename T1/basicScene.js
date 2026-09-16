@@ -1,11 +1,14 @@
 import * as THREE from 'three';
-import { OrbitControls } from '../build/jsm/controls/OrbitControls.js';
+//import { OrbitControls } from '../build/jsm/orbitControls/OrbitControls.js';
+import {startOrbitControls, switchCameraMode, initCamera, updateCameraView} from './camera.js';
 import { initRenderer, initDefaultBasicLight, onWindowResize } from '../libs/util/util.js';
 import { createCastle } from './castle.js';
 import { updateDoors, toggleDoorByObject } from './doors.js';
+import KeyboardState from '../../libs/util/KeyboardState.js'
+import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
 
-let scene, renderer, camera, controls, castle;
-const clock = new THREE.Clock();
+let scene, renderer, camera, pointerLockControls, orbitControls, cameraHolder, castle;
+const keyboard = new KeyboardState();
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -19,29 +22,27 @@ function init() {
   renderer = initRenderer('rgb(150, 182, 204)');
   renderer.shadowMap.enabled = true;
 
-  camera = new THREE.PerspectiveCamera(
-    60,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    500
-  );
-  camera.position.set(68, 42, 76);
-  scene.add(camera);
-
   // Iluminação conforme utilitário utilizado nas aulas.
   initDefaultBasicLight(scene);
 
   castle = createCastle(scene);
 
+  let cameraData = initCamera(scene);
+  camera = cameraData.camera;
+  cameraHolder = cameraData.cameraHolder;
+
+  scene.add(camera);
+
   // OrbitControls existe apenas para inspecionar a modelagem.
   // Não há mecânica de player, tiros ou sistema de colisão nesta versão.
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 8, 0);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
-  controls.minDistance = 5;
-  controls.maxDistance = 155;
-  controls.maxPolarAngle = Math.PI * 0.49;
+  orbitControls = startOrbitControls(camera, renderer);
+  pointerLockControls = new PointerLockControls(camera, renderer.domElement);
+  scene.add(pointerLockControls);
+
+  window.addEventListener('click', () => {
+      pointerLockControls.lock();
+  });
+
 
   window.addEventListener('resize', () => onWindowResize(camera, renderer));
   renderer.domElement.addEventListener('pointerdown', onPointerDown);
@@ -60,11 +61,62 @@ function onPointerDown(event) {
   }
 }
 
+function keyboardUpdate() {
+  keyboard.update();
+  if (keyboard.pressed('C')) switchCameraMode(camera, orbitControls);
+
+  // if (keyboard.pressed("down"))    updateCameraView(camera,"z", "position",0.1);
+  // if (keyboard.pressed("up"))  updateCameraView(camera,"z", "position",-0.1);
+  // if (keyboard.pressed("left"))  updateCameraView(camera,"x", "position",-0.1);
+  // if (keyboard.pressed("right")) updateCameraView(camera,"x", "position",0.1);
+  // if (keyboard.pressed("pageup"))   updateCameraView(camera,"y", "position",0.1);
+  // if (keyboard.pressed("pagedown")) updateCameraView(camera,"y", "position",-0.1);
+
+  // if (keyboard.pressed("S"))    updateCameraView(camera,"z", "position",0.1);
+  // if (keyboard.pressed("W"))  updateCameraView(camera,"z", "position",-0.1);
+  // if (keyboard.pressed("A"))  updateCameraView(camera,"x", "position",-0.1);
+  // if (keyboard.pressed("D")) updateCameraView(camera,"x", "position",0.1);
+  // if (keyboard.pressed("Q"))   updateCameraView(camera,"y", "position",0.1);
+  // if (keyboard.pressed("E")) updateCameraView(camera,"y", "position",-0.1);
+
+  // // Movimento do Alvo da Câmera (camLook)
+  // if (keyboard.pressed("S")) updateCameraView(camera,"z", "lookAt",0.1);
+  // if (keyboard.pressed("W")) updateCameraView(camera,"z", "lookAt",-0.1);
+  // if (keyboard.pressed("A")) updateCameraView(camera,"x", "lookAt",-0.1);
+  // if (keyboard.pressed("D")) updateCameraView(camera,"x", "lookAt",0.1);
+  // if (keyboard.pressed("Q")) updateCameraView(camera,"y", "lookAt",0.1);
+  // if (keyboard.pressed("E")) updateCameraView(camera,"y", "lookAt",-0.1);
+
+  // if(keyboard.pressed("1")) console.log(camera)
+
+  const moveKeys = { forward: false, backward: false, left: false, right: false };
+
+
+  if(pointerLockControls.isLocked) {
+    window.addEventListener('keydown', (event) => {
+        switch (event.code) {
+            case 'KeyW': case 'ArrowUp':    moveKeys.forward = true; break;
+            case 'KeyS': case 'ArrowDown':  moveKeys.backward = true; break;
+            case 'KeyA': case 'ArrowLeft':  moveKeys.left = true; break;
+            case 'KeyD': case 'ArrowRight': moveKeys.right = true; break;
+        }
+    });
+
+    window.addEventListener('keyup', (event) => {
+        switch (event.code) {
+            case 'KeyW': case 'ArrowUp':    moveKeys.forward = false; break;
+            case 'KeyS': case 'ArrowDown':  moveKeys.backward = false; break;
+            case 'KeyA': case 'ArrowLeft':  moveKeys.left = false; break;
+            case 'KeyD': case 'ArrowRight': moveKeys.right = false; break;
+        }
+    });
+  }
+}
+
 function render() {
   requestAnimationFrame(render);
-  const dt = Math.min(clock.getDelta(), 0.05);
-
-  controls.update();
-  updateDoors(castle.doors, camera.position, dt);
+  orbitControls.update();
+  keyboardUpdate();
+  updateDoors(castle.doors, camera.position);
   renderer.render(scene, camera);
 }
