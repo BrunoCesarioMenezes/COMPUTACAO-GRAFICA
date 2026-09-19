@@ -3,6 +3,13 @@ import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.j
 import { OrbitControls } from '../build/jsm/controls/OrbitControls.js';
 import { resolveCollisions } from './collision.js';
 
+// No topo do arquivo, após os imports, adicione:
+let onShootCallback = null;
+
+export function setShootHandler(fn) {
+    onShootCallback = fn;
+}
+
 export let camera;
 let pointerControls, orbitControls;
 let isOrbitMode = false;
@@ -26,7 +33,7 @@ export function setupCamera(renderer, scene) {
     camera = new THREE.PerspectiveCamera(
         75,
         window.innerWidth / window.innerHeight,
-        0.1,
+        0.05,
         1000
     );
     camera.position.set(0, 1.85, 0); // Posição inicial em altura dos olhos
@@ -146,8 +153,8 @@ function onKeyUp(event) {
 }
 
 function onMouseDown(event) {
-    // Disparo: Botão esquerdo (0) ou direito (2)
-    if (event.button === 0 || event.button === 2) {
+    // Disparo: Botão esquerdo (0)
+    if (event.button === 0) {
         if (!isOrbitMode && pointerControls.isLocked) {
             shootProjectile();
         }
@@ -155,7 +162,9 @@ function onMouseDown(event) {
 }
 
 function shootProjectile() {
-    console.log("Disparo efetuado na direção da mira!");
+    if (typeof onShootCallback === 'function') {
+        onShootCallback();
+    }
 }
 
 function toggleCameraMode() {
@@ -231,4 +240,9 @@ export function updateCamera(delta, castleRoot = null) {
     } else if (isOrbitMode) {
         orbitControls.update();
     }
+}
+
+// Adicione ao final de camera.js:
+export function isOrbitCameraMode() {
+    return isOrbitMode;
 }

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 import {
     setupCamera,
-    updateCamera,
+    updateCamera, setShootHandler, isOrbitCameraMode,
     getIsOrbitMode
 } from './camera.js';
 
@@ -20,37 +20,18 @@ import {
   updateDoors,
   toggleDoorByObject
 } from './doors.js';
+import { WeaponSystem } from './weapon.js';
 
 import KeyboardState
-  from '../../libs/util/KeyboardState.js';
+  from '../../libs/util/KeyboardState.js';;
 
 
-let scene;
-let renderer;
-let camera;
-
-let pointerLockControls;
-let orbitControls;
-let cameraHolder;
-
-let castle;
-
-
-const keyboard =
-  new KeyboardState();
-
-
-const raycaster =
-  new THREE.Raycaster();
-
-
-const mouse =
-  new THREE.Vector2();
-
-
-const clock =
-  new THREE.Clock();
-
+let scene, renderer, camera, pointerLockControls, orbitControls, cameraHolder, castle;
+let weaponSystem;
+const keyboard = new KeyboardState();
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const clock = new THREE.Clock();
 
 init();
 render();
@@ -99,6 +80,31 @@ function init() {
     );
 
 
+// ✅ Necessário para que a arma (filha da câmera) seja renderizada
+  scene.add(camera);
+  
+
+  // ------------------------------------------------------------
+  // SISTEMA DE ARMA
+  // ------------------------------------------------------------
+  weaponSystem = new WeaponSystem(camera, scene);
+
+  // Registra o handler de disparo disparado pelo mouse em camera.js
+  setShootHandler(() => {
+    if (!isOrbitCameraMode()) {
+      weaponSystem.shoot();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (camera) {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    }
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  renderer.domElement.addEventListener('pointerdown', onPointerDown);
   window.addEventListener(
     'resize',
     () => {
@@ -163,16 +169,18 @@ function onPointerDown(event) {
 // ================================================================
 
 function render() {
-
   requestAnimationFrame(render);
+  const delta = clock.getDelta();
 
+  updateCamera(delta);
 
-  const delta =
-    clock.getDelta();
+  // Atualiza arma/projéteis
+  if (weaponSystem) {
+    weaponSystem.update(delta);
+    // Esconde a arma no modo órbita
+    weaponSystem.setVisible(!isOrbitCameraMode());
+  }
 
-  updateCamera(delta, castle.root);
-  updateDoors(castle.doors, camera, getIsOrbitMode());
-
-
-  renderer.render(scene,camera);
+  updateDoors(castle.doors, camera.position);
+  renderer.render(scene, camera);
 }
