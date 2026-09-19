@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 
 import {
-  setupCamera,
-  updateCamera
+    setupCamera,
+    updateCamera,
+    getIsOrbitMode
 } from './camera.js';
 
 import {
@@ -138,29 +139,22 @@ function init() {
 // ================================================================
 
 function onPointerDown(event) {
-  // Somente botão direito interage com as portas
-  if (event.button !== 2) return;
+    if (!getIsOrbitMode()) return;
+    if (event.button !== 0) return;
 
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    const rect = renderer.domElement.getBoundingClientRect();
 
-  raycaster.setFromCamera(mouse,camera);
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-  const clickable = castle.doors.map(
-    door => door.panel
-  );
+    raycaster.setFromCamera(mouse, camera);
 
-  const hits = raycaster.intersectObjects(
-    clickable,
-    true
-  );
+    const clickable = castle.doors.map(door => door.panel);
+    const hits = raycaster.intersectObjects(clickable, true);
 
-  if (hits.length > 0) {
-    toggleDoorByObject(
-      castle.doors,
-      hits[0].object
-    );
-  }
+    if (hits.length > 0) {
+        toggleDoorByObject(castle.doors, hits[0].object);
+    }
 }
 
 
@@ -177,7 +171,7 @@ function render() {
     clock.getDelta();
 
   updateCamera(delta, castle.root);
-  updateDoors(castle.doors);
+  updateDoors(castle.doors, camera, getIsOrbitMode());
 
 
   renderer.render(scene,camera);

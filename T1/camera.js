@@ -197,6 +197,10 @@ function toggleCameraMode() {
     }
 }
 
+export function getIsOrbitMode() {
+    return isOrbitMode;
+}
+
 export function updateCamera(delta, castleRoot = null) {
     if (!isOrbitMode && pointerControls.isLocked) {
 

@@ -1,25 +1,23 @@
 import * as THREE from 'three';
-
+const doorWorldPosition = new THREE.Vector3();
 // Atualiza a animação das portas
-export function updateDoors(doors) {
-  for (const door of doors) {
-    const alpha = 0.05;
+export function updateDoors(doors, camera, isOrbitMode) {
+    for (const door of doors) {
+        if (isOrbitMode) {
+            door.target = door.manualOpen ? 1 : 0;
+        } else {
+            door.pivot.getWorldPosition(doorWorldPosition);
+            const distance = camera.position.distanceTo(doorWorldPosition);
+            door.target = distance <= door.triggerDistance ? 1 : 0;
+        }
 
-    // A porta abre somente pelo clique
-    door.target = door.manualOpen ? 1 : 0;
-
-    door.progress = THREE.MathUtils.lerp(
-      door.progress,
-      door.target,
-      alpha
-    );
-
-    door.pivot.rotation.y = THREE.MathUtils.lerp(
-      door.closedAngle,
-      door.openAngle,
-      door.progress
-    );
-  }
+        door.progress = THREE.MathUtils.lerp(door.progress, door.target, 0.05);
+        door.pivot.rotation.y = THREE.MathUtils.lerp(
+            door.closedAngle,
+            door.openAngle,
+            door.progress
+        );
+    }
 }
 
 // Abre ou fecha a porta clicada
@@ -33,8 +31,6 @@ export function toggleDoorByObject(doors, object) {
         const value = !sameGate.some(d => d.manualOpen);
         sameGate.forEach(d => d.manualOpen = value);
       }
-
-      // Porta comum
       else {
         door.manualOpen = !door.manualOpen;
       }
