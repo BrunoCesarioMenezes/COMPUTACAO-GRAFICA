@@ -2,31 +2,87 @@ import * as THREE from 'three';
 import { setDefaultMaterial } from '../libs/util/util.js';
 
 // ================================================================
-// CASTELO DE BODIAM - MODELAGEM DO AMBIENTE
-// Toda a geometria é construída com primitivas do Three.js.
-// Não há modelos externos/importados.
+// CASTELO DE BODIAM
+// Modelagem simplificada com primitivas do Three.js.
+//
+// Frente = -Z
+// Fundo  = +Z
+// Oeste  = -X
+// Leste  = +X
+//
+// Este arquivo contém:
+// - muralhas
+// - caminhos superiores
+// - torres
+// - gatehouse
+// - pátio
+// - construções internas
+// - escadas
+// - portas funcionais
+//
+// NÃO contém:
+// - player
+// - colisões
+// - tiros
+// ================================================================
+
+
+// ================================================================
+// CORES
 // ================================================================
 
 const COLORS = {
-  stone: 'rgb(132, 126, 112)',
-  stone2: 'rgb(151, 144, 126)',
-  stoneDark: 'rgb(100, 95, 84)',
-  stoneVeryDark: 'rgb(55, 53, 48)',
-  wood: 'rgb(86, 53, 30)',
-  woodDark: 'rgb(48, 31, 20)',
-  iron: 'rgb(45, 45, 42)',
-  grass: 'rgb(74, 104, 63)'
+
+  stone:
+    'rgb(132, 126, 112)',
+
+  stoneLight:
+    'rgb(154, 147, 128)',
+
+  stoneDark:
+    'rgb(102, 97, 86)',
+
+  opening:
+    'rgb(45, 43, 39)',
+
+  wood:
+    'rgb(88, 54, 31)',
+
+  woodDark:
+    'rgb(48, 30, 18)',
+
+  iron:
+    'rgb(42, 42, 39)',
+
+  grass:
+    'rgb(72, 103, 61)'
 };
 
 
 // ================================================================
-// FUNÇÕES AUXILIARES
+// FUNÇÕES BÁSICAS
 // ================================================================
 
-function mesh(geometry, material, parent, x = 0, y = 0, z = 0) {
-  const obj = new THREE.Mesh(geometry, material);
+function mesh(
+  geometry,
+  material,
+  parent,
+  x = 0,
+  y = 0,
+  z = 0
+) {
 
-  obj.position.set(x, y, z);
+  const obj =
+    new THREE.Mesh(
+      geometry,
+      material
+    );
+
+  obj.position.set(
+    x,
+    y,
+    z
+  );
 
   obj.castShadow = true;
   obj.receiveShadow = true;
@@ -37,11 +93,29 @@ function mesh(geometry, material, parent, x = 0, y = 0, z = 0) {
 }
 
 
-function box(parent, material, w, h, d, x, y, z) {
+function box(
+  parent,
+  material,
+  width,
+  height,
+  depth,
+  x,
+  y,
+  z
+) {
+
   return mesh(
-    new THREE.BoxGeometry(w, h, d),
+
+    new THREE.BoxGeometry(
+      width,
+      height,
+      depth
+    ),
+
     material,
+
     parent,
+
     x,
     y,
     z
@@ -59,40 +133,20 @@ function cylinder(
   z,
   segments = 32
 ) {
+
   return mesh(
+
     new THREE.CylinderGeometry(
       radius,
       radius,
       height,
       segments
     ),
-    material,
-    parent,
-    x,
-    y,
-    z
-  );
-}
 
-
-function cone(
-  parent,
-  material,
-  radius,
-  height,
-  x,
-  y,
-  z,
-  segments = 32
-) {
-  return mesh(
-    new THREE.ConeGeometry(
-      radius,
-      height,
-      segments
-    ),
     material,
+
     parent,
+
     x,
     y,
     z
@@ -105,42 +159,57 @@ function cone(
 // ================================================================
 
 function createMaterials() {
+
   return {
-    stone: setDefaultMaterial(COLORS.stone),
-    stone2: setDefaultMaterial(COLORS.stone2),
-    stoneDark: setDefaultMaterial(COLORS.stoneDark),
-    stoneVeryDark: setDefaultMaterial(COLORS.stoneVeryDark),
 
-    wood: setDefaultMaterial(COLORS.wood),
-    woodDark: setDefaultMaterial(COLORS.woodDark),
+    stone:
+      setDefaultMaterial(
+        COLORS.stone
+      ),
 
-    iron: setDefaultMaterial(COLORS.iron),
+    stoneLight:
+      setDefaultMaterial(
+        COLORS.stoneLight
+      ),
 
-    grass: setDefaultMaterial(COLORS.grass)
+    stoneDark:
+      setDefaultMaterial(
+        COLORS.stoneDark
+      ),
+
+    opening:
+      setDefaultMaterial(
+        COLORS.opening
+      ),
+
+    wood:
+      setDefaultMaterial(
+        COLORS.wood
+      ),
+
+    woodDark:
+      setDefaultMaterial(
+        COLORS.woodDark
+      ),
+
+    iron:
+      setDefaultMaterial(
+        COLORS.iron
+      ),
+
+    grass:
+      setDefaultMaterial(
+        COLORS.grass
+      )
   };
 }
 
 
 // ================================================================
-// DETALHES DE PEDRA
-// ================================================================
-
-function addStoneBand(parent, mat, x, y, z, w, d) {
-  box(
-    parent,
-    mat,
-    w,
-    0.45,
-    d,
-    x,
-    y,
-    z
-  );
-}
-
-
-// ================================================================
-// SETEIRAS
+// SETEIRA
+//
+// Apenas vertical.
+// Não há mais o detalhe em forma de cruz.
 // ================================================================
 
 function addArrowSlit(
@@ -149,117 +218,138 @@ function addArrowSlit(
   x,
   y,
   z,
-  rotY = 0,
+  rotationY = 0,
   scale = 1
 ) {
-  const group = new THREE.Group();
 
-  group.position.set(x, y, z);
-  group.rotation.y = rotY;
+  const group =
+    new THREE.Group();
+
+  group.position.set(
+    x,
+    y,
+    z
+  );
+
+  group.rotation.y =
+    rotationY;
 
   parent.add(group);
 
-  // Parte vertical
+
   box(
     group,
-    mats.stoneVeryDark,
-    0.34 * scale,
-    2.2 * scale,
-    0.12,
+    mats.opening,
+
+    0.28 * scale,
+    1.8 * scale,
+    0.13,
+
     0,
     0,
     0
-  );
-
-  // Parte horizontal
-  box(
-    group,
-    mats.stoneVeryDark,
-    1.0 * scale,
-    0.25 * scale,
-    0.13,
-    0,
-    0.15 * scale,
-    0.01
   );
 }
 
 
 // ================================================================
-// JANELAS
+// JANELA
 // ================================================================
 
-function addNarrowWindow(
+function addWindow(
   parent,
   mats,
   x,
   y,
   z,
-  rotY = 0
+  rotationY = 0,
+  scale = 1
 ) {
-  const g = new THREE.Group();
 
-  g.position.set(x, y, z);
-  g.rotation.y = rotY;
+  const group =
+    new THREE.Group();
 
-  parent.add(g);
+  group.position.set(
+    x,
+    y,
+    z
+  );
 
-  // Interior escuro
+  group.rotation.y =
+    rotationY;
+
+  parent.add(group);
+
+
   box(
-    g,
-    mats.stoneVeryDark,
-    1.15,
-    2.0,
-    0.12,
+    group,
+    mats.opening,
+
+    0.9 * scale,
+    1.65 * scale,
+    0.13,
+
     0,
     0,
     0
   );
 
-  // Moldura superior
+
+  // topo
   box(
-    g,
-    mats.stone2,
-    1.55,
-    0.22,
-    0.24,
+    group,
+    mats.stoneLight,
+
+    1.25 * scale,
+    0.18,
+    0.20,
+
     0,
-    1.12,
+    0.95 * scale,
     0
   );
 
-  // Moldura inferior
+
+  // base
   box(
-    g,
-    mats.stone2,
-    1.55,
-    0.22,
-    0.24,
+    group,
+    mats.stoneLight,
+
+    1.25 * scale,
+    0.18,
+    0.20,
+
     0,
-    -1.12,
+    -0.95 * scale,
     0
   );
 
-  // Moldura esquerda
+
+  // esquerda
   box(
-    g,
-    mats.stone2,
-    0.22,
-    2.45,
-    0.24,
-    -0.77,
+    group,
+    mats.stoneLight,
+
+    0.18,
+    2.0 * scale,
+    0.20,
+
+    -0.62 * scale,
     0,
     0
   );
 
-  // Moldura direita
+
+  // direita
   box(
-    g,
-    mats.stone2,
-    0.22,
-    2.45,
-    0.24,
-    0.77,
+    group,
+    mats.stoneLight,
+
+    0.18,
+    2.0 * scale,
+    0.20,
+
+    0.62 * scale,
     0,
     0
   );
@@ -270,45 +360,75 @@ function addNarrowWindow(
 // AMEIAS RETAS
 // ================================================================
 
-function createCrenellationsLine(parent, mat, cfg) {
+function createCrenellationsLine(
+  parent,
+  material,
+  cfg
+) {
 
   const {
+
     axis,
+
     fixed,
+
     start,
     end,
+
     y,
-    outward,
-    thickness = 1.7,
-    merlon = 2.15,
-    gap = 1.6
+
+    outward = 0,
+
+    merlon = 1.8,
+
+    gap = 1.35,
+
+    depth = 1.3,
+
+    height = 1.8
+
   } = cfg;
 
-  const step = merlon + gap;
 
-  for (let p = start; p <= end; p += step) {
+  const step =
+    merlon + gap;
 
-    if (axis === 'x') {
+
+  for (
+    let p = start;
+    p <= end;
+    p += step
+  ) {
+
+    if (
+      axis === 'x'
+    ) {
 
       box(
         parent,
-        mat,
+        material,
+
         merlon,
-        2.2,
-        thickness,
+        height,
+        depth,
+
         p,
         y,
         fixed + outward
       );
 
-    } else {
+    }
+
+    else {
 
       box(
         parent,
-        mat,
-        thickness,
-        2.2,
+        material,
+
+        depth,
+        height,
         merlon,
+
         fixed + outward,
         y,
         p
@@ -319,816 +439,809 @@ function createCrenellationsLine(parent, mat, cfg) {
 
 
 // ================================================================
-// AMEIAS CIRCULARES DAS TORRES
+// AMEIAS CIRCULARES
 // ================================================================
 
-function createTowerCrenellations(
+function createRoundCrenellations(
   parent,
-  mat,
-  cx,
-  cz,
+  material,
+  x,
+  z,
   radius,
   y,
   count = 14
 ) {
 
-  for (let i = 0; i < count; i++) {
+  for (
+    let i = 0;
+    i < count;
+    i++
+  ) {
 
-    const a =
-      i * Math.PI * 2 / count;
+    const angle =
+      i *
+      Math.PI *
+      2 /
+      count;
 
-    const block = box(
-      parent,
-      mat,
 
-      2.15,
-      2.35,
-      1.7,
+    const block =
+      box(
+        parent,
+        material,
 
-      cx + Math.cos(a) * radius,
-      y,
-      cz + Math.sin(a) * radius
-    );
+        1.8,
+        1.9,
+        1.45,
 
-    block.rotation.y = -a;
+        x +
+        Math.cos(angle) *
+        radius,
+
+        y,
+
+        z +
+        Math.sin(angle) *
+        radius
+      );
+
+
+    block.rotation.y =
+      -angle;
   }
 }
 
 
 // ================================================================
-// TORRES CIRCULARES
+// TORRE CIRCULAR DE CANTO
+//
+// Não possui porta.
+//
+// O personagem poderá chegar até a torre pelo caminho superior,
+// mas não existe entrada modelada para o interior da torre.
 // ================================================================
 
-function createRoundTower(
+function createCornerTower(
   parent,
   mats,
   x,
   z,
-  opts = {}
+  name
 ) {
-
-  const r =
-    opts.radius ?? 8.5;
-
-  // Torres principais mais altas.
-  const h =
-    opts.height ?? 25;
 
   const group =
     new THREE.Group();
 
   group.name =
-    opts.name ?? 'Torre circular';
+    name;
 
   parent.add(group);
 
 
-  // ------------------------------------------------
-  // CORPO PRINCIPAL
-  // ------------------------------------------------
+  const radius =
+    7.5;
+
+  const height =
+    25;
+
+
+  // ==============================================================
+  // CORPO
+  // ==============================================================
 
   cylinder(
     group,
     mats.stone,
-    r,
-    h,
+
+    radius,
+    height,
+
     x,
-    h / 2,
+    height / 2,
     z,
-    36
+
+    40
   );
 
 
-  // ------------------------------------------------
-  // FAIXAS HORIZONTAIS
-  // ------------------------------------------------
-
-  cylinder(
-    group,
-    mats.stoneDark,
-    r + 0.18,
-    0.5,
-    x,
-    6.0,
-    z,
-    36
-  );
-
-  cylinder(
-    group,
-    mats.stoneDark,
-    r + 0.18,
-    0.5,
-    x,
-    13.0,
-    z,
-    36
-  );
-
-  cylinder(
-    group,
-    mats.stoneDark,
-    r + 0.18,
-    0.5,
-    x,
-    19.5,
-    z,
-    36
-  );
-
-
-  // ------------------------------------------------
+  // ==============================================================
   // CORNIJA SUPERIOR
-  // ------------------------------------------------
+  // ==============================================================
 
   cylinder(
     group,
-    mats.stone2,
-    r + 0.45,
-    0.65,
+    mats.stoneLight,
+
+    radius + 0.35,
+    0.5,
+
     x,
-    h - 1.0,
+    height - 0.35,
     z,
-    36
+
+    40
   );
 
 
-  // ------------------------------------------------
-  // PLATAFORMA SUPERIOR
-  // ------------------------------------------------
+  // ==============================================================
+  // PISO SUPERIOR
+  // ==============================================================
 
   cylinder(
     group,
-    mats.stone2,
-    r + 0.65,
-    0.65,
+    mats.stoneLight,
+
+    radius + 0.45,
+    0.45,
+
     x,
-    h - 0.25,
+    height + 0.05,
     z,
-    36
+
+    40
   );
 
 
-  // ------------------------------------------------
+  // ==============================================================
   // AMEIAS
-  // ------------------------------------------------
+  // ==============================================================
 
-  createTowerCrenellations(
+  createRoundCrenellations(
     group,
-    mats.stone2,
+    mats.stoneLight,
+
     x,
     z,
-    r + 0.15,
-    h + 1.15,
+
+    radius,
+
+    height + 1.1,
+
     14
   );
 
 
-  // ------------------------------------------------
+  // ==============================================================
   // SETEIRAS
-  // ------------------------------------------------
+  // ==============================================================
 
-  const levels = [
-    7.0,
-    14.0,
-    20.5
-  ];
+  const levels =
+    [
+      7.5,
+      15.5
+    ];
 
-  for (const yy of levels) {
 
-    // Frente
+  for (
+    const yy of levels
+  ) {
+
+    // frente
     addArrowSlit(
       group,
       mats,
+
       x,
       yy,
-      z - r - 0.03,
+      z - radius - 0.04,
+
       0,
-      1
+      0.85
     );
 
-    // Traseira
+
+    // fundo
     addArrowSlit(
       group,
       mats,
+
       x,
       yy,
-      z + r + 0.03,
+      z + radius + 0.04,
+
       Math.PI,
-      1
+      0.85
     );
 
-    // Esquerda
+
+    // oeste
     addArrowSlit(
       group,
       mats,
-      x - r - 0.03,
+
+      x - radius - 0.04,
       yy,
       z,
+
       Math.PI / 2,
-      1
+      0.85
     );
 
-    // Direita
+
+    // leste
     addArrowSlit(
       group,
       mats,
-      x + r + 0.03,
+
+      x + radius + 0.04,
       yy,
       z,
+
       -Math.PI / 2,
-      1
+      0.85
     );
   }
 
-
-  // ------------------------------------------------
-  // CONTRAFORTES NA BASE
-  // ------------------------------------------------
-
-  for (let i = 0; i < 8; i++) {
-
-    const a =
-      i * Math.PI / 4;
-
-    const bx =
-      x +
-      Math.cos(a) *
-      (r + 0.3);
-
-    const bz =
-      z +
-      Math.sin(a) *
-      (r + 0.3);
-
-    const buttress = box(
-      group,
-      mats.stoneDark,
-
-      1.25,
-      3.1,
-      1.1,
-
-      bx,
-      1.55,
-      bz
-    );
-
-    buttress.rotation.y = -a;
-  }
 
   return group;
 }
 
 
 // ================================================================
-// TORRES INTERMEDIÁRIAS
+// TORRE RETANGULAR
 // ================================================================
 
-function createSquareMidTower(
+function createRectTower(
   parent,
   mats,
-  x,
-  z,
-  rotation = 0,
-  name = 'Torre intermediária'
+  cfg
 ) {
 
-  const g =
+  const {
+
+    x,
+    z,
+
+    width = 9,
+
+    depth = 8,
+
+    height = 21,
+
+    rotationY = 0,
+
+    name =
+      'Torre retangular'
+
+  } = cfg;
+
+
+  const group =
     new THREE.Group();
 
-  g.name = name;
+  group.name =
+    name;
 
-  g.position.set(
+  group.position.set(
     x,
     0,
     z
   );
 
-  g.rotation.y =
-    rotation;
+  group.rotation.y =
+    rotationY;
 
-  parent.add(g);
+  parent.add(group);
 
 
-  // Corpo
+  // ==============================================================
+  // CORPO
+  // ==============================================================
+
   box(
-    g,
+    group,
     mats.stone,
 
-    10.5,
-    21,
-    7.5,
+    width,
+    height,
+    depth,
 
     0,
-    10.5,
+    height / 2,
     0
   );
 
 
-  // Faixas
-  addStoneBand(
-    g,
-    mats.stoneDark,
-    0,
-    5.0,
-    -3.9,
-    10.9,
-    0.45
-  );
+  // ==============================================================
+  // PISO SUPERIOR
+  // ==============================================================
 
-  addStoneBand(
-    g,
-    mats.stoneDark,
-    0,
-    10.6,
-    -3.9,
-    10.9,
-    0.45
-  );
-
-  addStoneBand(
-    g,
-    mats.stoneDark,
-    0,
-    16.0,
-    -3.9,
-    10.9,
-    0.45
-  );
-
-
-  // Plataforma superior
   box(
-    g,
-    mats.stone2,
+    group,
+    mats.stoneLight,
 
-    11.2,
-    0.65,
-    8.2,
+    width + 0.45,
+    0.45,
+    depth + 0.45,
 
     0,
-    20.7,
+    height + 0.1,
     0
   );
 
 
-  // Ameias da frente
+  // ==============================================================
+  // AMEIAS
+  // ==============================================================
+
   createCrenellationsLine(
-    g,
-    mats.stone2,
+    group,
+    mats.stoneLight,
     {
+
       axis: 'x',
-      fixed: -3.65,
-      start: -4.6,
-      end: 4.6,
-      y: 22.05,
-      outward: 0,
-      thickness: 1.3,
-      merlon: 1.8,
-      gap: 1.35
+
+      fixed:
+        -depth / 2,
+
+      start:
+        -width / 2 + 0.8,
+
+      end:
+        width / 2 - 0.8,
+
+      y:
+        height + 1.05,
+
+      merlon:
+        1.5,
+
+      gap:
+        1.0,
+
+      depth:
+        1.15
     }
   );
 
 
-  // Ameias traseiras
   createCrenellationsLine(
-    g,
-    mats.stone2,
+    group,
+    mats.stoneLight,
     {
+
       axis: 'x',
-      fixed: 3.65,
-      start: -4.6,
-      end: 4.6,
-      y: 22.05,
-      outward: 0,
-      thickness: 1.3,
-      merlon: 1.8,
-      gap: 1.35
+
+      fixed:
+        depth / 2,
+
+      start:
+        -width / 2 + 0.8,
+
+      end:
+        width / 2 - 0.8,
+
+      y:
+        height + 1.05,
+
+      merlon:
+        1.5,
+
+      gap:
+        1.0,
+
+      depth:
+        1.15
     }
   );
 
 
-  // Seteiras
-  addArrowSlit(
-    g,
-    mats,
-    -2.4,
-    7.0,
-    -3.82,
-    0,
-    0.9
-  );
+  createCrenellationsLine(
+    group,
+    mats.stoneLight,
+    {
 
-  addArrowSlit(
-    g,
-    mats,
-    2.4,
-    7.0,
-    -3.82,
-    0,
-    0.9
-  );
+      axis: 'z',
 
-  addArrowSlit(
-    g,
-    mats,
-    -2.4,
-    13.5,
-    -3.82,
-    0,
-    0.9
-  );
+      fixed:
+        -width / 2,
 
-  addArrowSlit(
-    g,
-    mats,
-    2.4,
-    13.5,
-    -3.82,
-    0,
-    0.9
-  );
+      start:
+        -depth / 2 + 0.8,
 
-  addArrowSlit(
-    g,
-    mats,
-    0,
-    18.0,
-    -3.82,
-    0,
-    0.9
+      end:
+        depth / 2 - 0.8,
+
+      y:
+        height + 1.05,
+
+      merlon:
+        1.4,
+
+      gap:
+        1.0,
+
+      depth:
+        1.15
+    }
   );
 
 
-  return g;
+  createCrenellationsLine(
+    group,
+    mats.stoneLight,
+    {
+
+      axis: 'z',
+
+      fixed:
+        width / 2,
+
+      start:
+        -depth / 2 + 0.8,
+
+      end:
+        depth / 2 - 0.8,
+
+      y:
+        height + 1.05,
+
+      merlon:
+        1.4,
+
+      gap:
+        1.0,
+
+      depth:
+        1.15
+    }
+  );
+
+
+  // ==============================================================
+  // SETEIRAS
+  // ==============================================================
+
+  addArrowSlit(
+    group,
+    mats,
+
+    0,
+    7,
+    -depth / 2 - 0.03,
+
+    0,
+    0.85
+  );
+
+
+  addArrowSlit(
+    group,
+    mats,
+
+    0,
+    14,
+    -depth / 2 - 0.03,
+
+    0,
+    0.85
+  );
+
+
+  return group;
 }
 
 
 // ================================================================
-// MURALHAS HORIZONTAIS
+// MURALHA HORIZONTAL
+//
+// IMPORTANTE:
+//
+// A muralha agora possui 6 unidades de profundidade.
+//
+// Isso cria um caminho de aproximadamente 4 unidades no topo,
+// suficiente para o personagem andar.
+//
+// As extremidades entram dentro das torres para não deixar
+// espaços visuais.
 // ================================================================
 
-function createCurtainWallX(
+function createWallX(
   parent,
   mats,
   z,
   x1,
   x2,
-  gate = null
+  height = 13
 ) {
 
-  const h = 13.5;
-  const t = 3.2;
+  const thickness =
+    6.0;
+
 
   const length =
     x2 - x1;
+
 
   const center =
     (x1 + x2) / 2;
 
 
-  // ------------------------------------------------
-  // CORPO DA MURALHA
-  // ------------------------------------------------
-
-  if (!gate) {
-
-    box(
-      parent,
-      mats.stone,
-
-      length,
-      h,
-      t,
-
-      center,
-      h / 2,
-      z
-    );
-
-  } else {
-
-    // Lado esquerdo do portão
-    const leftLen =
-      gate.x -
-      gate.width / 2 -
-      x1;
-
-    // Início do lado direito
-    const rightStart =
-      gate.x +
-      gate.width / 2;
-
-    const rightLen =
-      x2 -
-      rightStart;
-
-
-    box(
-      parent,
-      mats.stone,
-
-      leftLen,
-      h,
-      t,
-
-      x1 + leftLen / 2,
-      h / 2,
-      z
-    );
-
-
-    box(
-      parent,
-      mats.stone,
-
-      rightLen,
-      h,
-      t,
-
-      rightStart +
-      rightLen / 2,
-
-      h / 2,
-      z
-    );
-
-
-    // Parte acima do portão
-    box(
-      parent,
-      mats.stone,
-
-      gate.width,
-      h - gate.height,
-      t,
-
-      gate.x,
-
-      gate.height +
-      (h - gate.height) / 2,
-
-      z
-    );
-  }
-
-
-  // ------------------------------------------------
-  // FAIXAS HORIZONTAIS
-  // ------------------------------------------------
-
-  addStoneBand(
-    parent,
-    mats.stoneDark,
-    center,
-    4.5,
-    z,
-    length,
-    t + 0.25
-  );
-
-  addStoneBand(
-    parent,
-    mats.stoneDark,
-    center,
-    9.0,
-    z,
-    length,
-    t + 0.25
-  );
-
-
-  // ------------------------------------------------
-  // CAMINHO SUPERIOR
-  // ------------------------------------------------
+  // ==============================================================
+  // CORPO
+  // ==============================================================
 
   box(
     parent,
-    mats.stone2,
+    mats.stone,
 
-    length + 0.7,
-    0.55,
-    t + 0.8,
+    length,
+    height,
+    thickness,
 
     center,
-    h + 0.22,
+    height / 2,
     z
   );
 
 
-  // ------------------------------------------------
-  // AMEIAS
-  //
-  // CORREÇÃO IMPORTANTE:
-  // aqui usamos parent, e NÃO "g".
-  // ------------------------------------------------
+  // ==============================================================
+  // CAMINHO SUPERIOR
+  // ==============================================================
+
+  box(
+    parent,
+    mats.stoneLight,
+
+    length,
+    0.45,
+    4.3,
+
+    center,
+    height + 0.22,
+    z
+  );
+
+
+  // ==============================================================
+  // PARAPEITO EXTERNO
+  // ==============================================================
 
   createCrenellationsLine(
     parent,
-    mats.stone2,
+    mats.stoneLight,
     {
-      axis: 'x',
-      fixed: z,
-      start: x1 + 1.4,
-      end: x2 - 1.4,
-      y: h + 1.55,
-      outward: -t / 2 + 0.8
+
+      axis:
+        'x',
+
+      fixed:
+        z,
+
+      start:
+        x1,
+
+      end:
+        x2,
+
+      y:
+        height + 1.15,
+
+      outward:
+        -2.35,
+
+      merlon:
+        1.8,
+
+      gap:
+        1.25,
+
+      depth:
+        1.1
     }
   );
 
 
+  // ==============================================================
+  // PARAPEITO INTERNO
+  // ==============================================================
+
   createCrenellationsLine(
     parent,
-    mats.stone2,
+    mats.stoneLight,
     {
-      axis: 'x',
-      fixed: z,
-      start: x1 + 1.4,
-      end: x2 - 1.4,
-      y: h + 1.55,
-      outward: t / 2 - 0.8
+
+      axis:
+        'x',
+
+      fixed:
+        z,
+
+      start:
+        x1,
+
+      end:
+        x2,
+
+      y:
+        height + 1.15,
+
+      outward:
+        2.35,
+
+      merlon:
+        1.8,
+
+      gap:
+        1.25,
+
+      depth:
+        1.1
     }
   );
-
-
-  // ------------------------------------------------
-  // SETEIRAS
-  // ------------------------------------------------
-
-  const outwardSign =
-    z < 0 ? -1 : 1;
-
-  for (
-    let x = x1 + 7;
-    x < x2 - 5;
-    x += 11
-  ) {
-
-    if (
-      gate &&
-      Math.abs(x - gate.x) <
-      gate.width
-    ) {
-      continue;
-    }
-
-    addArrowSlit(
-      parent,
-      mats,
-      x,
-      7.4,
-
-      z +
-      outwardSign *
-      (t / 2 + 0.03),
-
-      outwardSign < 0
-        ? 0
-        : Math.PI,
-
-      0.8
-    );
-  }
 }
 
 
 // ================================================================
-// MURALHAS VERTICAIS
+// MURALHA VERTICAL
 // ================================================================
 
-function createCurtainWallZ(
+function createWallZ(
   parent,
   mats,
   x,
   z1,
-  z2
+  z2,
+  height = 13
 ) {
 
-  const h = 13.5;
-  const t = 3.2;
+  const thickness =
+    6.0;
+
 
   const length =
     z2 - z1;
+
 
   const center =
     (z1 + z2) / 2;
 
 
-  // Corpo
+  // ==============================================================
+  // CORPO
+  // ==============================================================
+
   box(
     parent,
     mats.stone,
 
-    t,
-    h,
+    thickness,
+    height,
     length,
 
     x,
-    h / 2,
+    height / 2,
     center
   );
 
 
-  // Faixas
+  // ==============================================================
+  // CAMINHO SUPERIOR
+  // ==============================================================
+
   box(
     parent,
-    mats.stoneDark,
+    mats.stoneLight,
 
-    t + 0.25,
+    4.3,
     0.45,
     length,
 
     x,
-    4.5,
-    center
-  );
-
-  box(
-    parent,
-    mats.stoneDark,
-
-    t + 0.25,
-    0.45,
-    length,
-
-    x,
-    9.0,
+    height + 0.22,
     center
   );
 
 
-  // Caminho superior
-  box(
-    parent,
-    mats.stone2,
-
-    t + 0.8,
-    0.55,
-    length + 0.7,
-
-    x,
-    h + 0.22,
-    center
-  );
-
-
-  // Ameias
-  createCrenellationsLine(
-    parent,
-    mats.stone2,
-    {
-      axis: 'z',
-      fixed: x,
-      start: z1 + 1.4,
-      end: z2 - 1.4,
-      y: h + 1.55,
-      outward: -t / 2 + 0.8
-    }
-  );
+  // ==============================================================
+  // PARAPEITO OESTE
+  // ==============================================================
 
   createCrenellationsLine(
     parent,
-    mats.stone2,
+    mats.stoneLight,
     {
-      axis: 'z',
-      fixed: x,
-      start: z1 + 1.4,
-      end: z2 - 1.4,
-      y: h + 1.55,
-      outward: t / 2 - 0.8
+
+      axis:
+        'z',
+
+      fixed:
+        x,
+
+      start:
+        z1,
+
+      end:
+        z2,
+
+      y:
+        height + 1.15,
+
+      outward:
+        -2.35,
+
+      merlon:
+        1.8,
+
+      gap:
+        1.25,
+
+      depth:
+        1.1
     }
   );
 
 
-  // Seteiras
-  const outwardSign =
-    x < 0 ? -1 : 1;
+  // ==============================================================
+  // PARAPEITO LESTE
+  // ==============================================================
 
-  for (
-    let z = z1 + 7;
-    z < z2 - 5;
-    z += 11
-  ) {
+  createCrenellationsLine(
+    parent,
+    mats.stoneLight,
+    {
 
-    addArrowSlit(
-      parent,
-      mats,
+      axis:
+        'z',
 
-      x +
-      outwardSign *
-      (t / 2 + 0.03),
+      fixed:
+        x,
 
-      7.4,
-      z,
+      start:
+        z1,
 
-      outwardSign < 0
-        ? Math.PI / 2
-        : -Math.PI / 2,
+      end:
+        z2,
 
-      0.8
-    );
-  }
+      y:
+        height + 1.15,
+
+      outward:
+        2.35,
+
+      merlon:
+        1.8,
+
+      gap:
+        1.25,
+
+      depth:
+        1.1
+    }
+  );
+}
+
+
+// ================================================================
+// PLATAFORMA DE LIGAÇÃO COM TORRE
+//
+// Serve para garantir continuidade visual e física entre o caminho
+// da muralha e a torre.
+//
+// Não cria entrada.
+// ================================================================
+
+function createTowerConnection(
+  parent,
+  mats,
+  x,
+  z,
+  width,
+  depth
+) {
+
+  box(
+    parent,
+    mats.stoneLight,
+
+    width,
+    0.48,
+    depth,
+
+    x,
+    13.25,
+    z
+  );
 }
 
 
@@ -1143,6 +1256,7 @@ function createDoor(
 ) {
 
   const {
+
     x,
     y,
     z,
@@ -1156,21 +1270,23 @@ function createDoor(
 
     name = 'Porta',
 
-    openAngle = Math.PI / 2,
+    openAngle =
+      Math.PI / 2,
 
-    triggerDistance = 8
+    triggerDistance = 8,
+
+    detailSide = -1
+
   } = cfg;
 
-
-  // ------------------------------------------------
-  // PIVÔ
-  // ------------------------------------------------
 
   const pivot =
     new THREE.Group();
 
+
   pivot.name =
     `${name} - pivô`;
+
 
   pivot.position.set(
     x,
@@ -1178,15 +1294,15 @@ function createDoor(
     z
   );
 
+
   pivot.rotation.y =
     rotationY;
 
-  parent.add(pivot);
 
+  parent.add(
+    pivot
+  );
 
-  // ------------------------------------------------
-  // POSIÇÃO DA FOLHA
-  // ------------------------------------------------
 
   const direction =
     hinge === 'left'
@@ -1194,36 +1310,36 @@ function createDoor(
       : -1;
 
 
-  const panel = box(
-    pivot,
-    mats.wood,
+  const panel =
+    box(
+      pivot,
+      mats.wood,
 
-    width,
-    height,
-    0.42,
+      width,
+      height,
+      0.38,
 
-    direction *
-    width / 2,
+      direction *
+      width / 2,
 
-    0,
-    0
-  );
-
-  panel.name = name;
+      0,
+      0
+    );
 
 
-  // ------------------------------------------------
-  // DETALHES DA FACE EXTERNA
-  //
-  // O exterior frontal do castelo está em -Z.
-  // Por isso usamos valores negativos.
-  // ------------------------------------------------
+  panel.name =
+    name;
+
+
+  // ==============================================================
+  // DETALHES DA PORTA
+  // ==============================================================
 
   for (
     const yy of [
-      -height * 0.30,
+      -height * 0.3,
       0,
-      height * 0.30
+      height * 0.3
     ]
   ) {
 
@@ -1231,44 +1347,34 @@ function createDoor(
       panel,
       mats.woodDark,
 
-      width * 0.92,
-      0.22,
-      0.10,
+      width * 0.9,
+      0.18,
+      0.08,
 
       0,
       yy,
-      -0.26
+      detailSide * 0.23
     );
   }
 
 
-  // Ferragem vertical
   box(
     panel,
     mats.iron,
 
-    0.15,
-    height * 0.82,
+    0.12,
+    height * 0.8,
     0.08,
 
     -direction *
-    width * 0.28,
+    width *
+    0.28,
 
     0,
-    -0.28
+
+    detailSide *
+    0.25
   );
-
-
-  // ------------------------------------------------
-  // POSIÇÃO PARA DETECÇÃO DA PORTA
-  // ------------------------------------------------
-
-  const worldTrigger =
-    new THREE.Vector3(
-      x,
-      y,
-      z
-    );
 
 
   return {
@@ -1278,21 +1384,30 @@ function createDoor(
     pivot,
     panel,
 
-    closedAngle: 0,
+    closedAngle:
+      0,
 
     openAngle:
       direction *
       openAngle,
 
-    progress: 0,
-    target: 0,
+    progress:
+      0,
+
+    target:
+      0,
 
     triggerDistance,
 
     triggerPosition:
-      worldTrigger,
+      new THREE.Vector3(
+        x,
+        y,
+        z
+      ),
 
-    manualOpen: false
+    manualOpen:
+      false
   };
 }
 
@@ -1307,358 +1422,324 @@ function createGatehouse(
   doors
 ) {
 
-  const g =
+  const group =
     new THREE.Group();
 
-  g.name =
+
+  group.name =
     'Portaria principal';
 
-  parent.add(g);
 
-
-  // ==============================================================
-  // DIMENSÕES DO PORTÃO
-  // ==============================================================
-
-  const openingW = 7.2;
-  const openingH = 8.0;
-
-
-  // ==============================================================
-  // CORPO CENTRAL
-  // ==============================================================
-
-  // Gatehouse mais alto para acompanhar a nova escala das torres.
-  box(
-    g,
-    mats.stoneDark,
-
-    19,
-    21.5,
-    8.5,
-
-    0,
-    10.75,
-    -43.0
+  parent.add(
+    group
   );
 
 
-  // ==============================================================
-  // PASSAGEM CENTRAL
-  // ==============================================================
-
-  // Bloco esquerdo
-  box(
-    g,
-    mats.stone,
-
-    5.3,
-    openingH,
-    9.2,
-
-    -(openingW / 2 + 2.65),
-    openingH / 2,
-    -43.0
-  );
+  const openingWidth =
+    7;
 
 
-  // Bloco direito
-  box(
-    g,
-    mats.stone,
-
-    5.3,
-    openingH,
-    9.2,
-
-    +(openingW / 2 + 2.65),
-    openingH / 2,
-    -43.0
-  );
+  const openingHeight =
+    7.8;
 
 
-  // Parte superior do portal
-  box(
-    g,
-    mats.stone,
+  const towerWidth =
+    8;
 
-    openingW,
-    13.5,
-    9.2,
 
-    0,
-    openingH + 6.75,
-    -43.0
-  );
+  const towerDepth =
+    9;
+
+
+  const towerHeight =
+    22;
 
 
   // ==============================================================
-  // TORRES FRONTAIS DO GATEHOUSE
+  // TORRE ESQUERDA
   // ==============================================================
 
-  createRoundTower(
-    g,
+  createRectTower(
+    group,
     mats,
-    -10.0,
-    -43.8,
     {
-      radius: 5.6,
-      height: 23,
-      name:
-        'Torre do portão esquerda'
-    }
-  );
 
+      x:
+        -7.5,
 
-  createRoundTower(
-    g,
-    mats,
-    10.0,
-    -43.8,
-    {
-      radius: 5.6,
-      height: 23,
+      z:
+        -0.5,
+
+      width:
+        towerWidth,
+
+      depth:
+        towerDepth,
+
+      height:
+        towerHeight,
+
       name:
-        'Torre do portão direita'
+        'Torre esquerda da portaria'
     }
   );
 
 
   // ==============================================================
-  // MOLDURA DO PORTAL
+  // TORRE DIREITA
+  // ==============================================================
+
+  createRectTower(
+    group,
+    mats,
+    {
+
+      x:
+        7.5,
+
+      z:
+        -0.5,
+
+      width:
+        towerWidth,
+
+      depth:
+        towerDepth,
+
+      height:
+        towerHeight,
+
+      name:
+        'Torre direita da portaria'
+    }
+  );
+
+
+  // ==============================================================
+  // BLOCO CENTRAL
   // ==============================================================
 
   box(
-    g,
-    mats.stone2,
+    group,
+    mats.stone,
 
-    openingW + 1.0,
-    0.55,
-    0.6,
+    openingWidth,
+    12,
+    7,
 
     0,
-    openingH + 0.2,
-    -47.63
+    openingHeight + 6,
+    -0.3
   );
 
+
+  // ==============================================================
+  // CAMINHO SOBRE A PORTARIA
+  //
+  // Liga o caminho da muralha esquerda ao da direita.
+  // ==============================================================
 
   box(
-    g,
-    mats.stone2,
+    group,
+    mats.stoneLight,
 
-    0.55,
-    openingH,
-    0.6,
+    23,
+    0.5,
+    4.3,
 
-    -(openingW / 2 + 0.25),
-    openingH / 2,
-    -47.63
-  );
-
-
-  box(
-    g,
-    mats.stone2,
-
-    0.55,
-    openingH,
-    0.6,
-
-    +(openingW / 2 + 0.25),
-    openingH / 2,
-    -47.63
-  );
-
-
-  // ==============================================================
-  // PORTCULLIS DECORATIVO
-  // ==============================================================
-
-  for (
-    let x = -2.8;
-    x <= 2.8;
-    x += 1.4
-  ) {
-
-    box(
-      g,
-      mats.iron,
-
-      0.12,
-      4.2,
-      0.12,
-
-      x,
-      14.0,
-      -47.25
-    );
-  }
-
-
-  for (
-    let y = 12.3;
-    y <= 15.7;
-    y += 1.1
-  ) {
-
-    box(
-      g,
-      mats.iron,
-
-      6.1,
-      0.12,
-      0.12,
-
-      0,
-      y,
-      -47.25
-    );
-  }
-
-
-  // ==============================================================
-  // JANELAS SUPERIORES
-  // ==============================================================
-
-  addNarrowWindow(
-    g,
-    mats,
-    -3.2,
-    15.8,
-    -47.32,
-    0
-  );
-
-  addNarrowWindow(
-    g,
-    mats,
-    3.2,
-    15.8,
-    -47.32,
+    0,
+    13.25,
     0
   );
 
 
   // ==============================================================
-  // AMEIAS DO CORPO CENTRAL
+  // MOLDURA DO PORTÃO
   // ==============================================================
 
-  createCrenellationsLine(
-    g,
-    mats.stone2,
-    {
-      axis: 'x',
+  box(
+    group,
+    mats.stoneLight,
 
-      fixed: -46.5,
+    openingWidth + 0.8,
+    0.45,
+    0.55,
 
-      start: -7.5,
-      end: 7.5,
+    0,
+    openingHeight + 0.1,
+    -4.35
+  );
 
-      y: 22.8,
 
-      outward: 0,
+  box(
+    group,
+    mats.stoneLight,
 
-      thickness: 1.6,
-      merlon: 2.0,
-      gap: 1.4
-    }
+    0.45,
+    openingHeight,
+    0.55,
+
+    -openingWidth / 2 -
+    0.2,
+
+    openingHeight / 2,
+    -4.35
+  );
+
+
+  box(
+    group,
+    mats.stoneLight,
+
+    0.45,
+    openingHeight,
+    0.55,
+
+    openingWidth / 2 +
+    0.2,
+
+    openingHeight / 2,
+    -4.35
   );
 
 
   // ==============================================================
-  // PORTA PRINCIPAL
-  // ==============================================================
-  //
-  // Cada pivô fica na lateral do vão.
-  //
-  // Isso evita o problema anterior em que as duas folhas
-  // giravam pelo centro da passagem.
+  // SETEIRAS
   // ==============================================================
 
+  addArrowSlit(
+    group,
+    mats,
 
-  // ------------------------------------------------
-  // FOLHA ESQUERDA
-  // ------------------------------------------------
+    -7.5,
+    8,
+    -5.05
+  );
+
+
+  addArrowSlit(
+    group,
+    mats,
+
+    -7.5,
+    15,
+    -5.05
+  );
+
+
+  addArrowSlit(
+    group,
+    mats,
+
+    7.5,
+    8,
+    -5.05
+  );
+
+
+  addArrowSlit(
+    group,
+    mats,
+
+    7.5,
+    15,
+    -5.05
+  );
+
+
+  addArrowSlit(
+    group,
+    mats,
+
+    0,
+    14,
+    -3.85
+  );
+
+
+  // ==============================================================
+  // PORTÃO PRINCIPAL
+  // ==============================================================
+
+  const doorZ =
+    -4.15;
+
 
   const left =
     createDoor(
-      g,
+      group,
       mats,
       {
 
         x:
-          -openingW / 2,
+          -openingWidth / 2,
 
         y:
-          4.0,
+          openingHeight / 2,
 
         z:
-          -47.2,
+          doorZ,
 
         width:
-          openingW / 2,
+          openingWidth / 2,
 
         height:
-          7.7,
+          7.3,
 
         hinge:
           'left',
-
-        openAngle:
-          Math.PI / 2,
 
         name:
           'Porta principal - folha esquerda',
 
         triggerDistance:
-          10
+          10,
+
+        detailSide:
+          -1
       }
     );
 
 
-  // ------------------------------------------------
-  // FOLHA DIREITA
-  // ------------------------------------------------
-
   const right =
     createDoor(
-      g,
+      group,
       mats,
       {
 
         x:
-          openingW / 2,
+          openingWidth / 2,
 
         y:
-          4.0,
+          openingHeight / 2,
 
         z:
-          -47.2,
+          doorZ,
 
         width:
-          openingW / 2,
+          openingWidth / 2,
 
         height:
-          7.7,
+          7.3,
 
         hinge:
           'right',
-
-        openAngle:
-          Math.PI / 2,
 
         name:
           'Porta principal - folha direita',
 
         triggerDistance:
-          10
+          10,
+
+        detailSide:
+          -1
       }
     );
 
 
-  // As duas folhas pertencem ao mesmo portão.
   left.groupId =
     'mainGate';
+
 
   right.groupId =
     'mainGate';
@@ -1670,12 +1751,17 @@ function createGatehouse(
   );
 
 
-  return g;
+  // Frente do castelo
+  group.position.z =
+    -42;
+
+
+  return group;
 }
 
 
 // ================================================================
-// ESCADAS
+// ESCADA
 // ================================================================
 
 function createStoneStair(
@@ -1695,7 +1781,7 @@ function createStoneStair(
 
     height = 7,
 
-    steps = 14,
+    steps = 12,
 
     axis = 'z',
 
@@ -1704,7 +1790,7 @@ function createStoneStair(
   } = cfg;
 
 
-  const depth =
+  const stepLength =
     length / steps;
 
 
@@ -1714,11 +1800,7 @@ function createStoneStair(
     i++
   ) {
 
-    // ------------------------------------------------
-    // CORREÇÃO DO SENTIDO DAS ESCADAS
-    // ------------------------------------------------
-
-    const index =
+    const level =
       reverse
         ? i + 1
         : steps - i;
@@ -1726,13 +1808,13 @@ function createStoneStair(
 
     const h =
       height *
-      index /
+      level /
       steps;
 
 
     const offset =
       -length / 2 +
-      depth *
+      stepLength *
       (i + 0.5);
 
 
@@ -1750,22 +1832,20 @@ function createStoneStair(
 
     box(
       parent,
-      mats.stone2,
+      mats.stoneLight,
 
       axis === 'z'
         ? width
-        : depth,
+        : stepLength,
 
       h,
 
       axis === 'z'
-        ? depth
+        ? stepLength
         : width,
 
       sx,
-
       h / 2,
-
       sz
     );
   }
@@ -1773,7 +1853,7 @@ function createStoneStair(
 
 
 // ================================================================
-// CONSTRUÇÕES INTERNAS
+// CONSTRUÇÃO INTERNA
 // ================================================================
 
 function createInternalBuilding(
@@ -1788,219 +1868,202 @@ function createInternalBuilding(
     x,
     z,
 
-    w,
-    d,
-    h,
+    width,
+    depth,
+    height,
 
     name,
 
-    doorOn = 'south',
-
-    stairSide = 'east'
+    stairSide =
+      'east'
 
   } = cfg;
 
 
-  const g =
+  const group =
     new THREE.Group();
 
-  g.name =
+
+  group.name =
     name;
 
-  parent.add(g);
+
+  parent.add(
+    group
+  );
 
 
-  const t =
-    1.15;
-
-  const doorW =
-    3.2;
-
-  const doorH =
-    4.4;
+  const wallThickness =
+    1;
 
 
-  const southZ =
-    z - d / 2;
-
-  const northZ =
-    z + d / 2;
+  const doorWidth =
+    3;
 
 
-  // ==============================================================
-  // PAREDE FRONTAL COM VÃO REAL
-  // ==============================================================
-
-  if (
-    doorOn === 'south'
-  ) {
-
-    // Parte esquerda
-    box(
-      g,
-      mats.stoneDark,
-
-      (w - doorW) / 2,
-      h,
-      t,
-
-      x -
-      (w + doorW) / 4,
-
-      h / 2,
-
-      southZ
-    );
+  const doorHeight =
+    4.2;
 
 
-    // Parte direita
-    box(
-      g,
-      mats.stoneDark,
-
-      (w - doorW) / 2,
-      h,
-      t,
-
-      x +
-      (w + doorW) / 4,
-
-      h / 2,
-
-      southZ
-    );
+  const frontZ =
+    z -
+    depth / 2;
 
 
-    // Parte acima da porta
-    box(
-      g,
-      mats.stoneDark,
+  const backZ =
+    z +
+    depth / 2;
 
-      doorW,
-      h - doorH,
-      t,
 
-      x,
-
-      doorH +
-      (h - doorH) / 2,
-
-      southZ
-    );
-
-  } else {
-
-    box(
-      g,
-      mats.stoneDark,
-
-      w,
-      h,
-      t,
-
-      x,
-      h / 2,
-      southZ
-    );
-  }
+  const sideWidth =
+    (width -
+    doorWidth) /
+    2;
 
 
   // ==============================================================
-  // PAREDE TRASEIRA
+  // FACHADA - ESQUERDA
   // ==============================================================
 
   box(
-    g,
+    group,
     mats.stoneDark,
 
-    w,
-    h,
-    t,
+    sideWidth,
+    height,
+    wallThickness,
 
-    x,
-    h / 2,
-    northZ
+    x -
+    (
+      doorWidth / 2 +
+      sideWidth / 2
+    ),
+
+    height / 2,
+
+    frontZ
   );
 
 
   // ==============================================================
-  // PAREDES LATERAIS
+  // FACHADA - DIREITA
   // ==============================================================
 
   box(
-    g,
+    group,
     mats.stoneDark,
 
-    t,
-    h,
-    d,
+    sideWidth,
+    height,
+    wallThickness,
 
-    x - w / 2,
-    h / 2,
+    x +
+    (
+      doorWidth / 2 +
+      sideWidth / 2
+    ),
+
+    height / 2,
+
+    frontZ
+  );
+
+
+  // ==============================================================
+  // SOBRE A PORTA
+  // ==============================================================
+
+  box(
+    group,
+    mats.stoneDark,
+
+    doorWidth,
+
+    height -
+    doorHeight,
+
+    wallThickness,
+
+    x,
+
+    doorHeight +
+    (
+      height -
+      doorHeight
+    ) / 2,
+
+    frontZ
+  );
+
+
+  // ==============================================================
+  // FUNDO
+  // ==============================================================
+
+  box(
+    group,
+    mats.stoneDark,
+
+    width,
+    height,
+    wallThickness,
+
+    x,
+    height / 2,
+    backZ
+  );
+
+
+  // ==============================================================
+  // LATERAL ESQUERDA
+  // ==============================================================
+
+  box(
+    group,
+    mats.stoneDark,
+
+    wallThickness,
+    height,
+    depth,
+
+    x - width / 2,
+    height / 2,
     z
   );
 
 
+  // ==============================================================
+  // LATERAL DIREITA
+  // ==============================================================
+
   box(
-    g,
+    group,
     mats.stoneDark,
 
-    t,
-    h,
-    d,
+    wallThickness,
+    height,
+    depth,
 
-    x + w / 2,
-    h / 2,
+    x + width / 2,
+    height / 2,
     z
   );
 
 
   // ==============================================================
-  // FAIXAS HORIZONTAIS
+  // COBERTURA
   // ==============================================================
 
   box(
-    g,
-    mats.stone2,
+    group,
+    mats.stoneLight,
 
-    w + 0.5,
-    0.4,
-    t + 0.3,
-
-    x,
-    3.3,
-    southZ
-  );
-
-
-  box(
-    g,
-    mats.stone2,
-
-    w + 0.5,
-    0.4,
-    t + 0.3,
+    width,
+    0.45,
+    depth,
 
     x,
-    6.4,
-    southZ
-  );
-
-
-  // ==============================================================
-  // LAJE SUPERIOR
-  // ==============================================================
-
-  box(
-    g,
-    mats.stone2,
-
-    w - 0.5,
-    0.65,
-    d - 0.5,
-
-    x,
-    h + 0.32,
+    height + 0.2,
     z
   );
 
@@ -2010,77 +2073,37 @@ function createInternalBuilding(
   // ==============================================================
 
   createCrenellationsLine(
-    g,
-    mats.stone2,
+    group,
+    mats.stoneLight,
     {
 
-      axis: 'x',
+      axis:
+        'x',
 
       fixed:
-        southZ,
+        frontZ,
 
       start:
         x -
-        w / 2 +
-        1.2,
+        width / 2 +
+        1,
 
       end:
         x +
-        w / 2 -
-        1.2,
+        width / 2 -
+        1,
 
       y:
-        h + 1.55,
-
-      outward:
-        0.4,
-
-      thickness:
-        1.0,
+        height + 1.1,
 
       merlon:
-        1.7,
+        1.5,
 
       gap:
-        1.3
-    }
-  );
+        1.1,
 
-
-  createCrenellationsLine(
-    g,
-    mats.stone2,
-    {
-
-      axis: 'x',
-
-      fixed:
-        northZ,
-
-      start:
-        x -
-        w / 2 +
-        1.2,
-
-      end:
-        x +
-        w / 2 -
-        1.2,
-
-      y:
-        h + 1.55,
-
-      outward:
-        -0.4,
-
-      thickness:
-        1.0,
-
-      merlon:
-        1.7,
-
-      gap:
-        1.3
+      depth:
+        1.1
     }
   );
 
@@ -2089,76 +2112,71 @@ function createInternalBuilding(
   // JANELAS
   // ==============================================================
 
-  addNarrowWindow(
-    g,
+  addWindow(
+    group,
     mats,
 
     x -
-    w * 0.25,
+    width *
+    0.27,
 
-    h * 0.63,
+    height *
+    0.62,
 
-    southZ -
-    t / 2 -
-    0.02,
+    frontZ -
+    0.52,
 
-    0
+    0,
+    0.8
   );
 
 
-  addNarrowWindow(
-    g,
+  addWindow(
+    group,
     mats,
 
     x +
-    w * 0.25,
+    width *
+    0.27,
 
-    h * 0.63,
+    height *
+    0.62,
 
-    southZ -
-    t / 2 -
-    0.02,
+    frontZ -
+    0.52,
 
-    0
+    0,
+    0.8
   );
 
 
   // ==============================================================
-  // PORTA INTERNA
-  //
-  // CORREÇÃO:
-  // x representa a DOBRADIÇA e não o centro da porta.
+  // PORTA
   // ==============================================================
-
-  const doorZ =
-    southZ -
-    t / 2 -
-    0.16;
-
 
   doors.push(
 
     createDoor(
-      g,
+      group,
       mats,
       {
 
-        // Pivô na lateral esquerda do vão
         x:
           x -
-          doorW / 2,
+          doorWidth / 2,
 
         y:
-          doorH / 2,
+          doorHeight / 2,
 
         z:
-          doorZ,
+          frontZ -
+          0.58,
 
         width:
-          doorW,
+          doorWidth,
 
         height:
-          doorH,
+          doorHeight,
 
         hinge:
           'left',
@@ -2167,30 +2185,33 @@ function createInternalBuilding(
           `${name} - porta`,
 
         triggerDistance:
-          7
+          7,
+
+        detailSide:
+          -1
       }
     )
   );
 
 
   // ==============================================================
-  // ESCADA EXTERNA
+  // ESCADA
   // ==============================================================
 
   const stairX =
     stairSide === 'east'
 
       ? x +
-        w / 2 +
-        4.5
+        width / 2 +
+        3.5
 
       : x -
-        w / 2 -
-        4.5;
+        width / 2 -
+        3.5;
 
 
   createStoneStair(
-    g,
+    group,
     mats,
     {
 
@@ -2200,190 +2221,163 @@ function createInternalBuilding(
       z,
 
       width:
-        3.8,
+        3.3,
 
       length:
-        9,
+        8,
 
       height:
-        h + 0.65,
+        height + 0.3,
 
       steps:
-        14,
+        12,
 
       axis:
         'x',
 
       reverse:
-        stairSide === 'west'
+        stairSide ===
+        'west'
     }
   );
 
 
-  return g;
+  return group;
 }
 
 
 // ================================================================
-// DETALHES DO PÁTIO
+// ALAS INTERNAS
 // ================================================================
 
-function createCourtyardDetails(
+function createInnerRange(
+  parent,
+  mats,
+  cfg
+) {
+
+  const {
+
+    x,
+    z,
+
+    width,
+    depth,
+    height
+
+  } = cfg;
+
+
+  box(
+    parent,
+    mats.stoneDark,
+
+    width,
+    height,
+    depth,
+
+    x,
+    height / 2,
+    z
+  );
+
+
+  box(
+    parent,
+    mats.stoneLight,
+
+    width + 0.3,
+    0.35,
+    depth + 0.3,
+
+    x,
+    height + 0.15,
+    z
+  );
+}
+
+
+// ================================================================
+// PÁTIO
+// ================================================================
+
+function createCourtyard(
   parent,
   mats
 ) {
 
-  // ==============================================================
-  // POÇO
-  // ==============================================================
-
-  cylinder(
-    parent,
-    mats.stoneDark,
-
-    4.2,
-    1.45,
-
-    0,
-    0.72,
-    5,
-
-    28
-  );
-
-
-  cylinder(
-    parent,
-    mats.stoneVeryDark,
-
-    3.3,
-    0.5,
-
-    0,
-    1.55,
-    5,
-
-    28
-  );
-
-
-  // Suporte esquerdo
-  box(
-    parent,
-    mats.woodDark,
-
-    0.45,
-    5.4,
-    0.45,
-
-    -3.2,
-    3.7,
-    5
-  );
-
-
-  // Suporte direito
-  box(
-    parent,
-    mats.woodDark,
-
-    0.45,
-    5.4,
-    0.45,
-
-    3.2,
-    3.7,
-    5
-  );
-
-
-  // Viga superior
-  box(
-    parent,
-    mats.woodDark,
-
-    7.0,
-    0.42,
-    0.42,
-
-    0,
-    6.0,
-    5
-  );
-
-
-  // Eixo
-  const wellAxle =
-    cylinder(
-      parent,
-      mats.wood,
-
-      0.28,
-      5.8,
-
-      0,
-      5.25,
-      5,
-
-      16
-    );
-
-  wellAxle.rotation.z =
-    Math.PI / 2;
-
-
-  // ==============================================================
-  // BARRIS
-  // ==============================================================
-
+  // Caminho longitudinal
   for (
-    let i = 0;
-    i < 3;
-    i++
+    let z = -31;
+    z <= 20;
+    z += 5
   ) {
 
-    const barrel =
-      cylinder(
-        parent,
-        mats.wood,
+    box(
+      parent,
+      mats.stoneLight,
 
-        1.0,
-        2.2,
+      4,
+      0.10,
+      4,
 
-        -26 +
-        i * 2.3,
+      0,
+      0.05,
+      z
+    );
+  }
 
-        1.0,
-        22,
 
-        18
-      );
+  // Caminho transversal
+  for (
+    let x = -20;
+    x <= 20;
+    x += 5
+  ) {
 
-    barrel.rotation.z =
-      Math.PI / 2;
+    box(
+      parent,
+      mats.stoneLight,
+
+      4,
+      0.10,
+      4,
+
+      x,
+      0.05,
+      7
+    );
   }
 }
 
 
 // ================================================================
-// CRIAÇÃO DO CASTELO
+// CASTELO
 // ================================================================
 
-export function createCastle(scene) {
+export function createCastle(
+  scene
+) {
 
   const root =
     new THREE.Group();
 
+
   root.name =
     'Castelo de Bodiam - Modelagem';
 
-  scene.add(root);
+
+  scene.add(
+    root
+  );
 
 
   const mats =
     createMaterials();
 
-  const doors = [];
+
+  const doors =
+    [];
 
 
   // ==============================================================
@@ -2392,6 +2386,7 @@ export function createCastle(scene) {
 
   const ground =
     mesh(
+
       new THREE.PlaneGeometry(
         180,
         180
@@ -2406,139 +2401,266 @@ export function createCastle(scene) {
       0
     );
 
+
   ground.rotation.x =
     -Math.PI / 2;
 
 
   // ==============================================================
-  // DIMENSÃO PRINCIPAL
+  // DIMENSÕES GERAIS
   // ==============================================================
 
-  const HALF = 42;
+  const HALF =
+    42;
 
 
-  // ==============================================================
-  // MURALHAS
+  // ------------------------------------------------
+  // IMPORTANTE:
   //
-  // Frente = -Z
+  // As muralhas chegam agora até +/- 42.
+  //
+  // Como as torres possuem raio 7.5, a parede entra
+  // dentro do volume da torre.
+  //
+  // Isso elimina os espaços entre parede e torre.
+  // ------------------------------------------------
+
+
+  // ==============================================================
+  // MURALHA FRONTAL
+  //
+  // Deixamos somente o espaço central do gatehouse.
   // ==============================================================
 
-
-  // Frente
-  createCurtainWallX(
+  createWallX(
     root,
     mats,
 
     -HALF,
 
-    -34,
-    34,
-
-    {
-      x: 0,
-      width: 8,
-      height: 8
-    }
+    -HALF,
+    -10
   );
 
 
-  // Fundo
-  createCurtainWallX(
-    root,
-    mats,
-
-    HALF,
-
-    -34,
-    34
-  );
-
-
-  // Esquerda
-  createCurtainWallZ(
+  createWallX(
     root,
     mats,
 
     -HALF,
 
-    -34,
-    34
-  );
-
-
-  // Direita
-  createCurtainWallZ(
-    root,
-    mats,
-
-    HALF,
-
-    -34,
-    34
+    10,
+    HALF
   );
 
 
   // ==============================================================
-  // QUATRO GRANDES TORRES DE CANTO
+  // MURALHA TRASEIRA
+  //
+  // Passa atrás da torre intermediária.
+  // A sobreposição é proposital para eliminar espaços.
   // ==============================================================
 
-  createRoundTower(
+  createWallX(
     root,
     mats,
 
-    -HALF,
-    -HALF,
+    HALF,
 
-    {
-      height: 25,
-      name:
-        'Torre sudoeste'
-    }
+    -HALF,
+    HALF
   );
 
 
-  createRoundTower(
+  // ==============================================================
+  // MURALHA OESTE
+  // ==============================================================
+
+  createWallZ(
+    root,
+    mats,
+
+    -HALF,
+
+    -HALF,
+    HALF
+  );
+
+
+  // ==============================================================
+  // MURALHA LESTE
+  // ==============================================================
+
+  createWallZ(
+    root,
+    mats,
+
+    HALF,
+
+    -HALF,
+    HALF
+  );
+
+
+  // ==============================================================
+  // QUATRO TORRES CILÍNDRICAS
+  // ==============================================================
+
+  createCornerTower(
+    root,
+    mats,
+
+    -HALF,
+    -HALF,
+
+    'Torre frontal oeste'
+  );
+
+
+  createCornerTower(
     root,
     mats,
 
     HALF,
     -HALF,
 
-    {
-      height: 25,
-      name:
-        'Torre sudeste'
-    }
+    'Torre frontal leste'
   );
 
 
-  createRoundTower(
+  createCornerTower(
     root,
     mats,
 
     -HALF,
     HALF,
 
-    {
-      height: 25,
-      name:
-        'Torre noroeste'
-    }
+    'Torre traseira oeste'
   );
 
 
-  createRoundTower(
+  createCornerTower(
     root,
     mats,
 
     HALF,
     HALF,
 
-    {
-      height: 25,
-      name:
-        'Torre nordeste'
-    }
+    'Torre traseira leste'
+  );
+
+
+  // ==============================================================
+  // LIGAÇÕES DO CAMINHO COM AS TORRES
+  //
+  // Não são entradas.
+  //
+  // São somente extensões do piso superior para que não exista
+  // buraco entre a passarela e o volume das torres.
+  // ==============================================================
+
+
+  // Frente esquerda
+  createTowerConnection(
+    root,
+    mats,
+
+    -37.5,
+    -42,
+
+    9,
+    4.3
+  );
+
+
+  // Frente direita
+  createTowerConnection(
+    root,
+    mats,
+
+    37.5,
+    -42,
+
+    9,
+    4.3
+  );
+
+
+  // Fundo esquerdo
+  createTowerConnection(
+    root,
+    mats,
+
+    -37.5,
+    42,
+
+    9,
+    4.3
+  );
+
+
+  // Fundo direito
+  createTowerConnection(
+    root,
+    mats,
+
+    37.5,
+    42,
+
+    9,
+    4.3
+  );
+
+
+  // Oeste / frente
+  createTowerConnection(
+    root,
+    mats,
+
+    -42,
+    -37.5,
+
+    4.3,
+    9
+  );
+
+
+  // Oeste / fundo
+  createTowerConnection(
+    root,
+    mats,
+
+    -42,
+    37.5,
+
+    4.3,
+    9
+  );
+
+
+  // Leste / frente
+  createTowerConnection(
+    root,
+    mats,
+
+    42,
+    -37.5,
+
+    4.3,
+    9
+  );
+
+
+  // Leste / fundo
+  createTowerConnection(
+    root,
+    mats,
+
+    42,
+    37.5,
+
+    4.3,
+    9
   );
 
 
@@ -2546,47 +2668,99 @@ export function createCastle(scene) {
   // TORRES INTERMEDIÁRIAS
   // ==============================================================
 
-  createSquareMidTower(
+  createRectTower(
     root,
     mats,
+    {
 
-    -HALF,
-    0,
+      x:
+        -HALF,
 
-    Math.PI / 2,
+      z:
+        0,
 
-    'Torre lateral oeste'
+      width:
+        9,
+
+      depth:
+        9,
+
+      height:
+        21,
+
+      rotationY:
+        Math.PI / 2,
+
+      name:
+        'Torre intermediária oeste'
+    }
   );
 
 
-  createSquareMidTower(
+  createRectTower(
     root,
     mats,
+    {
 
-    HALF,
-    0,
+      x:
+        HALF,
 
-    -Math.PI / 2,
+      z:
+        0,
 
-    'Torre lateral leste'
-  );
+      width:
+        9,
 
+      depth:
+        9,
 
-  createSquareMidTower(
-    root,
-    mats,
+      height:
+        21,
 
-    0,
-    HALF,
+      rotationY:
+        -Math.PI / 2,
 
-    Math.PI,
-
-    'Torre traseira'
+      name:
+        'Torre intermediária leste'
+    }
   );
 
 
   // ==============================================================
-  // PORTARIA PRINCIPAL
+  // TORRE CENTRAL TRASEIRA
+  // ==============================================================
+
+  createRectTower(
+    root,
+    mats,
+    {
+
+      x:
+        0,
+
+      z:
+        HALF,
+
+      width:
+        11,
+
+      depth:
+        9,
+
+      height:
+        22,
+
+      rotationY:
+        Math.PI,
+
+      name:
+        'Torre central traseira'
+    }
+  );
+
+
+  // ==============================================================
+  // PORTARIA
   // ==============================================================
 
   createGatehouse(
@@ -2596,8 +2770,9 @@ export function createCastle(scene) {
   );
 
 
+
   // ==============================================================
-  // CONSTRUÇÃO INTERNA OESTE
+  // DUAS CONSTRUÇÕES INTERNAS
   // ==============================================================
 
   createInternalBuilding(
@@ -2607,22 +2782,22 @@ export function createCastle(scene) {
     {
 
       x:
-        -20,
+        -22,
 
       z:
-        11,
+        13,
 
-      w:
-        23,
+      width:
+        18,
 
-      d:
-        17,
+      depth:
+        12,
 
-      h:
-        9.5,
+      height:
+        9,
 
       name:
-        'Construção interna oeste',
+        'Edifício interno oeste',
 
       stairSide:
         'east'
@@ -2630,10 +2805,6 @@ export function createCastle(scene) {
   );
 
 
-  // ==============================================================
-  // CONSTRUÇÃO INTERNA LESTE
-  // ==============================================================
-
   createInternalBuilding(
     root,
     mats,
@@ -2641,22 +2812,22 @@ export function createCastle(scene) {
     {
 
       x:
-        20,
+        22,
 
       z:
-        15,
+        14,
 
-      w:
-        21,
+      width:
+        17,
 
-      d:
-        19,
+      depth:
+        12,
 
-      h:
-        10.5,
+      height:
+        9.5,
 
       name:
-        'Construção interna leste',
+        'Edifício interno leste',
 
       stairSide:
         'west'
@@ -2665,96 +2836,61 @@ export function createCastle(scene) {
 
 
   // ==============================================================
-  // ESCADA DE ACESSO À MURALHA
+  // ESCADA PARA O CAMINHO DA MURALHA
+  //
+  // Agora a altura final coincide com o piso superior da muralha.
   // ==============================================================
 
   createStoneStair(
-    root,
-    mats,
-    {
+  root,
+  mats,
+  {
+    x: 37.0,
+    z: -20.0,
 
-      x:
-        29,
+    width: 4.0,
+    length: 18.0,
 
-      z:
-        -26,
+    height: 13.2,
 
-      width:
-        4.5,
+    steps: 22,
 
-      length:
-        17,
+    axis: 'z',
 
-      height:
-        13.8,
-
-      steps:
-        20,
-
-      axis:
-        'z'
-    }
-  );
+    // Faz os degraus subirem em direção à muralha.
+    reverse: true
+  }
+);
 
 
   // ==============================================================
-  // PLATAFORMA DA ESCADA
+  // PLATAFORMA SUPERIOR DA ESCADA
+  //
+  // Liga a escada ao caminho da muralha frontal.
   // ==============================================================
 
   box(
-    root,
-    mats.stone2,
+  root,
+  mats.stoneLight,
 
-    6.5,
-    0.6,
-    7.5,
+  7.0,
+  0.48,
+  5.0,
 
-    29,
-    13.6,
-    -34.5
-  );
+  39.0,
+  13.25,
+  -8.5
+);
 
 
   // ==============================================================
-  // DETALHES DO PÁTIO
+  // PÁTIO
   // ==============================================================
 
-  createCourtyardDetails(
+  createCourtyard(
     root,
     mats
   );
-
-
-  // ==============================================================
-  // LAJES DO PÁTIO
-  // ==============================================================
-
-  for (
-    let x = -12;
-    x <= 12;
-    x += 6
-  ) {
-
-    for (
-      let z = -12;
-      z <= 12;
-      z += 6
-    ) {
-
-      box(
-        root,
-        mats.stone2,
-
-        4.2,
-        0.12,
-        4.2,
-
-        x,
-        0.06,
-        z
-      );
-    }
-  }
 
 
   // ==============================================================
@@ -2762,8 +2898,12 @@ export function createCastle(scene) {
   // ==============================================================
 
   return {
+
     root,
+
     doors,
-    materials: mats
+
+    materials:
+      mats
   };
 }
