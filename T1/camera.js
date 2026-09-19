@@ -36,13 +36,13 @@ export function setupCamera(renderer, scene) {
         0.05,
         1000
     );
-    camera.position.set(0, 2, 0); // Posição inicial em altura dos olhos
+    camera.position.set(0, 2,-70); // Posição inicial em altura dos olhos
 
     pointerControls = new PointerLockControls(camera, renderer.domElement);
     orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.enabled = false;
 
-    camera.lookAt(0, 1.6, -1); // Olhando para frente na altura dos olhos
+    camera.lookAt(0, 2.5, 0); // Olhando para frente na altura dos olhos
 
     
     // Ativa PointerLock ao clicar no canvas
