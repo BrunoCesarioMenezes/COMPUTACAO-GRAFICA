@@ -1,34 +1,12 @@
 import * as THREE from 'three';
-
-import {
-    setupCamera,
-    updateCamera, setShootHandler, isOrbitCameraMode,
-    getIsOrbitMode
-} from './camera.js';
-
-import {
-  initRenderer,
-  initDefaultBasicLight,
-  onWindowResize
-} from '../libs/util/util.js';
-
-import {
-  createCastle
-} from './castle.js';
-
-import {
-  updateDoors,
-  toggleDoorByObject
-} from './doors.js';
+import { setupCamera, updateCamera, setShootHandler, getIsOrbitMode } from './camera.js';
+import { initRenderer, initDefaultBasicLight } from '../libs/util/util.js';
+import { createCastle } from './castle.js';
+import { updateDoors, toggleDoorByObject } from './doors.js';
 import { WeaponSystem } from './weapon.js';
 
-import KeyboardState
-  from '../../libs/util/KeyboardState.js';;
+let scene, renderer, camera, castle, weaponSystem;
 
-
-let scene, renderer, camera, pointerLockControls, orbitControls, cameraHolder, castle;
-let weaponSystem;
-const keyboard = new KeyboardState();
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const clock = new THREE.Clock();
@@ -36,117 +14,38 @@ const clock = new THREE.Clock();
 init();
 render();
 
-
 function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color('rgb(150, 182, 204)');
 
-  scene =
-    new THREE.Scene();
+    renderer = initRenderer('rgb(150, 182, 204)');
+    renderer.shadowMap.enabled = true;
 
+    initDefaultBasicLight(scene);
 
-  scene.background =
-    new THREE.Color(
-      'rgb(150, 182, 204)'
-    );
+    castle = createCastle(scene);
+    camera = setupCamera(renderer, scene);
 
+    scene.add(camera);
 
-  renderer =
-    initRenderer(
-      'rgb(150, 182, 204)'
-    );
+    weaponSystem = new WeaponSystem(camera, scene);
 
+    setShootHandler(() => {
+        if (!getIsOrbitMode()) weaponSystem.shoot();
+    });
 
-  renderer.shadowMap.enabled =
-    true;
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    renderer.domElement.addEventListener('contextmenu', event => event.preventDefault());
 
-
-  initDefaultBasicLight(
-    scene
-  );
-
-
-  // Cria o castelo.
-  // castle.root será utilizado também
-  // pelo sistema de colisão.
-  castle =
-    createCastle(
-      scene
-    );
-
-
-  camera =
-    setupCamera(
-      renderer,
-      scene
-    );
-
-
-// ✅ Necessário para que a arma (filha da câmera) seja renderizada
-  scene.add(camera);
-  
-
-  // ------------------------------------------------------------
-  // SISTEMA DE ARMA
-  // ------------------------------------------------------------
-  weaponSystem = new WeaponSystem(camera, scene);
-
-  // Registra o handler de disparo disparado pelo mouse em camera.js
-  setShootHandler(() => {
-    if (!isOrbitCameraMode()) {
-      weaponSystem.shoot();
-    }
-  });
-
-  window.addEventListener('resize', () => {
-    if (camera) {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-    }
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-
-  renderer.domElement.addEventListener('pointerdown', onPointerDown);
-  window.addEventListener(
-    'resize',
-    () => {
-
-      if (camera) {
-
-        camera.aspect =
-          window.innerWidth /
-          window.innerHeight;
-
-
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
-      }
-
-
-      renderer.setSize(
-        window.innerWidth,
-        window.innerHeight
-      );
-    }
-  );
-
-
-  renderer.domElement.addEventListener(
-    'pointerdown',
-    onPointerDown
-  );
-
-  renderer.domElement.addEventListener(
-    'contextmenu',
-    (event) => event.preventDefault()
-  );
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
 }
 
-
-// ================================================================
-// CLIQUE NAS PORTAS
-// ================================================================
-
 function onPointerDown(event) {
-    if (!getIsOrbitMode()) return;
-    if (event.button !== 0) return;
+    if (!getIsOrbitMode() || event.button !== 0) return;
 
     const rect = renderer.domElement.getBoundingClientRect();
 
@@ -158,29 +57,21 @@ function onPointerDown(event) {
     const clickable = castle.doors.map(door => door.panel);
     const hits = raycaster.intersectObjects(clickable, true);
 
-    if (hits.length > 0) {
-        toggleDoorByObject(castle.doors, hits[0].object);
-    }
+    if (hits.length > 0) toggleDoorByObject(castle.doors, hits[0].object);
 }
 
-
-// ================================================================
-// LOOP PRINCIPAL
-// ================================================================
-
 function render() {
-  requestAnimationFrame(render);
-  const delta = clock.getDelta();
+    requestAnimationFrame(render);
 
-  updateCamera(delta);
+    const delta = clock.getDelta();
 
-  // Atualiza arma/projéteis
-  if (weaponSystem) {
-    weaponSystem.update(delta);
-    // Esconde a arma no modo órbita
-    weaponSystem.setVisible(!isOrbitCameraMode());
-  }
+    updateCamera(delta, castle.root);
+    updateDoors(castle.doors, camera, getIsOrbitMode());
 
-  updateDoors(castle.doors, camera.position);
-  renderer.render(scene, camera);
+    if (weaponSystem) {
+        weaponSystem.update(delta);
+        weaponSystem.setVisible(!getIsOrbitMode());
+    }
+
+    renderer.render(scene, camera);
 }

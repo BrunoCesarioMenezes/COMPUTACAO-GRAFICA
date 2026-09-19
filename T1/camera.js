@@ -36,7 +36,7 @@ export function setupCamera(renderer, scene) {
         0.05,
         1000
     );
-    camera.position.set(0, 1.85, 0); // Posição inicial em altura dos olhos
+    camera.position.set(0, 2, 0); // Posição inicial em altura dos olhos
 
     pointerControls = new PointerLockControls(camera, renderer.domElement);
     orbitControls = new OrbitControls(camera, renderer.domElement);
@@ -240,9 +240,4 @@ export function updateCamera(delta, castleRoot = null) {
     } else if (isOrbitMode) {
         orbitControls.update();
     }
-}
-
-// Adicione ao final de camera.js:
-export function isOrbitCameraMode() {
-    return isOrbitMode;
 }
