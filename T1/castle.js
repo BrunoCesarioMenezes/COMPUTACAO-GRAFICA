@@ -1765,38 +1765,33 @@ function createGatehouse(
 // ================================================================
 
 function createStoneStair(parent, mats, cfg) {
-    const {
-        x,
-        z,
-        width = 4,
-        length = 10,
-        height = 7,
-        steps = 12,
-        axis = 'z',
-        reverse = false
-    } = cfg;
-
+    const { x, z, width = 4, length = 10, height = 7, steps = 12, axis = 'z', reverse = false } = cfg;
     const stepLength = length / steps;
+    const wallThickness = 0.15;
 
     for (let i = 0; i < steps; i++) {
         const level = reverse ? i + 1 : steps - i;
         const h = height * level / steps;
         const offset = -length / 2 + stepLength * (i + 0.5);
-
         const sx = axis === 'x' ? x + offset : x;
         const sz = axis === 'z' ? z + offset : z;
 
-        const step = box(
-            parent,
-            mats.stoneLight,
+        const step = box(parent, mats.stoneLight,
             axis === 'z' ? width : stepLength,
             h,
             axis === 'z' ? stepLength : width,
-            sx,
-            h / 2,
-            sz
+            sx, h / 2, sz
         );
+
         step.userData.isStep = true;
+
+        if (axis === 'z') {
+            box(parent, mats.stoneLight, wallThickness, h, stepLength, x - width / 2, h / 2, sz);
+            box(parent, mats.stoneLight, wallThickness, h, stepLength, x + width / 2, h / 2, sz);
+        } else {
+            box(parent, mats.stoneLight, stepLength, h, wallThickness, sx, h / 2, z - width / 2);
+            box(parent, mats.stoneLight, stepLength, h, wallThickness, sx, h / 2, z + width / 2);
+        }
     }
 }
 

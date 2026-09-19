@@ -29,7 +29,7 @@ export function setupCamera(renderer, scene) {
         0.1,
         1000
     );
-    camera.position.set(0, 1.6, 0); // Posição inicial em altura dos olhos
+    camera.position.set(0, 1.85, 0); // Posição inicial em altura dos olhos
 
     pointerControls = new PointerLockControls(camera, renderer.domElement);
     orbitControls = new OrbitControls(camera, renderer.domElement);
