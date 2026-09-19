@@ -1764,91 +1764,40 @@ function createGatehouse(
 // ESCADA
 // ================================================================
 
-function createStoneStair(
-  parent,
-  mats,
-  cfg
-) {
+function createStoneStair(parent, mats, cfg) {
+    const {
+        x,
+        z,
+        width = 4,
+        length = 10,
+        height = 7,
+        steps = 12,
+        axis = 'z',
+        reverse = false
+    } = cfg;
 
-  const {
+    const stepLength = length / steps;
 
-    x,
-    z,
+    for (let i = 0; i < steps; i++) {
+        const level = reverse ? i + 1 : steps - i;
+        const h = height * level / steps;
+        const offset = -length / 2 + stepLength * (i + 0.5);
 
-    width = 4,
+        const sx = axis === 'x' ? x + offset : x;
+        const sz = axis === 'z' ? z + offset : z;
 
-    length = 10,
-
-    height = 7,
-
-    steps = 12,
-
-    axis = 'z',
-
-    reverse = false
-
-  } = cfg;
-
-
-  const stepLength =
-    length / steps;
-
-
-  for (
-    let i = 0;
-    i < steps;
-    i++
-  ) {
-
-    const level =
-      reverse
-        ? i + 1
-        : steps - i;
-
-
-    const h =
-      height *
-      level /
-      steps;
-
-
-    const offset =
-      -length / 2 +
-      stepLength *
-      (i + 0.5);
-
-
-    const sx =
-      axis === 'x'
-        ? x + offset
-        : x;
-
-
-    const sz =
-      axis === 'z'
-        ? z + offset
-        : z;
-
-
-    box(
-      parent,
-      mats.stoneLight,
-
-      axis === 'z'
-        ? width
-        : stepLength,
-
-      h,
-
-      axis === 'z'
-        ? stepLength
-        : width,
-
-      sx,
-      h / 2,
-      sz
-    );
-  }
+        const step = box(
+            parent,
+            mats.stoneLight,
+            axis === 'z' ? width : stepLength,
+            h,
+            axis === 'z' ? stepLength : width,
+            sx,
+            h / 2,
+            sz
+        );
+        step.userData.isStep = true;
+    }
 }
 
 
@@ -2200,14 +2149,8 @@ function createInternalBuilding(
 
   const stairX =
     stairSide === 'east'
-
-      ? x +
-        width / 2 +
-        3.5
-
-      : x -
-        width / 2 -
-        3.5;
+        ? x + width / 2 + 4.0
+        : x - width / 2 - 4.0;
 
 
   createStoneStair(
@@ -2244,7 +2187,6 @@ function createInternalBuilding(
 
   return group;
 }
-
 
 // ================================================================
 // ALAS INTERNAS

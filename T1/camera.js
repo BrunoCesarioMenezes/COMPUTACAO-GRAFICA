@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
 import { OrbitControls } from '../build/jsm/controls/OrbitControls.js';
+import { resolveCollisions } from './collision.js';
 
 export let camera;
 let pointerControls, orbitControls;
@@ -35,6 +36,8 @@ export function setupCamera(renderer, scene) {
     orbitControls.enabled = false;
 
     camera.lookAt(0, 1.6, -1); // Olhando para frente na altura dos olhos
+
+    
     // Ativa PointerLock ao clicar no canvas
     renderer.domElement.addEventListener('click', () => {
         if (!isOrbitMode && !pointerControls.isLocked) {
@@ -194,12 +197,33 @@ function toggleCameraMode() {
     }
 }
 
-export function updateCamera(delta) {
+export function updateCamera(delta, castleRoot = null) {
     if (!isOrbitMode && pointerControls.isLocked) {
-        if (moveState.forward) pointerControls.moveForward(MOVE_SPEED * delta);
-        if (moveState.backward) pointerControls.moveForward(-MOVE_SPEED * delta);
-        if (moveState.left) pointerControls.moveRight(-MOVE_SPEED * delta);
-        if (moveState.right) pointerControls.moveRight(MOVE_SPEED * delta);
+
+        const oldPosition = camera.position.clone();
+
+        // Movimento normal do PointerLockControls
+        if (moveState.forward) {
+            pointerControls.moveForward(MOVE_SPEED * delta);
+        }
+
+        if (moveState.backward) {
+            pointerControls.moveForward(-MOVE_SPEED * delta);
+        }
+
+        if (moveState.left) {
+            pointerControls.moveRight(-MOVE_SPEED * delta);
+        }
+
+        if (moveState.right) {
+            pointerControls.moveRight(MOVE_SPEED * delta);
+        }
+
+        // Corrige a posição caso tenha ocorrido uma colisão
+        if (castleRoot) {
+            resolveCollisions(camera, oldPosition, castleRoot, delta);
+        }
+
     } else if (isOrbitMode) {
         orbitControls.update();
     }
