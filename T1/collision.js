@@ -6,7 +6,8 @@ export const MAX_STEP_HEIGHT = 0.9;
 
 const GRAVITY = 20.0;
 const MAX_FALL_SPEED = 16.0;
-const STAIR_SMOOTH_SPEED = 10.0;
+const STAIR_SMOOTH_SPEED = 14.0;
+const STAIR_EXIT_SMOOTH_SPEED = 10.0;
 const FLOOR_TOLERANCE = 0.08;
 const SUPPORT_MARGIN = 0.08;
 
@@ -14,6 +15,8 @@ let meshes = [];
 let currentRoot = null;
 let verticalVelocity = 0;
 let grounded = true;
+let stairMode = false;
+let stairTargetY = null;
 
 function updateMeshes(root) {
     if (root === currentRoot) return;
@@ -73,6 +76,21 @@ function getStepSurface(position) {
     return bestStep;
 }
 
+function isOnStep(position) {
+    const footY = position.y - PLAYER_EYE_HEIGHT;
+
+    for (const obj of meshes) {
+        if (obj.userData.isStep !== true) continue;
+
+        const box = getBox(obj);
+        if (!isOverBox(position, box, SUPPORT_MARGIN)) continue;
+
+        if (Math.abs(footY - box.max.y) <= MAX_STEP_HEIGHT + 0.15) return true;
+    }
+
+    return false;
+}
+
 function collisionAmount(position) {
     const footY = position.y - PLAYER_EYE_HEIGHT;
     const headY = position.y;
@@ -128,17 +146,31 @@ function moveZ(camera, wantedPosition) {
     if (next === 0 || (current > 0 && next < current)) camera.position.z = wantedPosition.z;
 }
 
+function smoothToHeight(camera, targetY, speed, delta) {
+    const factor = 1 - Math.exp(-speed * delta);
+    camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetY, factor);
+}
+
 function moveUpSmooth(camera, floorY, delta) {
     const targetY = floorY + PLAYER_EYE_HEIGHT;
-    const factor = 1 - Math.exp(-STAIR_SMOOTH_SPEED * delta);
 
-    camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetY, factor);
+    stairMode = true;
+
+    if (stairTargetY === null || targetY > stairTargetY) {
+        stairTargetY = targetY;
+    }
+
+    smoothToHeight(camera, stairTargetY, STAIR_SMOOTH_SPEED, delta);
+
     verticalVelocity = 0;
     grounded = true;
 }
 
 function fall(camera, floorY, delta) {
+    stairMode = false;
+    stairTargetY = null;
     grounded = false;
+
     verticalVelocity -= GRAVITY * delta;
     verticalVelocity = Math.max(verticalVelocity, -MAX_FALL_SPEED);
 
@@ -174,6 +206,27 @@ function updateVertical(camera, delta) {
         return;
     }
 
+    const onStep = isOnStep(camera.position);
+
+    if (stairMode && onStep) {
+        const targetY = floorY + PLAYER_EYE_HEIGHT;
+
+        if (stairTargetY !== null && stairTargetY > targetY) {
+            smoothToHeight(camera, stairTargetY, STAIR_SMOOTH_SPEED, delta);
+        } else {
+            smoothToHeight(camera, targetY, STAIR_EXIT_SMOOTH_SPEED, delta);
+        }
+
+        verticalVelocity = 0;
+        grounded = true;
+        return;
+    }
+
+    if (stairMode && !onStep) {
+        stairMode = false;
+        stairTargetY = null;
+    }
+
     const distance = footY - floorY;
 
     if (distance >= -FLOOR_TOLERANCE && distance <= FLOOR_TOLERANCE && verticalVelocity <= 0) {
@@ -200,9 +253,11 @@ export function resolveCollisions(camera, oldPosition, castleRoot, delta) {
 
     updateMeshes(castleRoot);
     castleRoot.updateMatrixWorld(true);
+
     delta = Math.min(delta, 0.05);
 
     const wantedPosition = camera.position.clone();
+
     camera.position.copy(oldPosition);
 
     moveX(camera, wantedPosition);

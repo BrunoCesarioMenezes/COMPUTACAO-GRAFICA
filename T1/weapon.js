@@ -9,6 +9,7 @@ const PROJECTILE_SPEED = 55;      // unidades por segundo
 const PROJECTILE_LIFETIME = 3.0;  // segundos até desaparecer
 const PROJECTILE_RADIUS = 0.18;
 const FIRE_COOLDOWN = 0.18;       // intervalo mínimo entre disparos (s)
+const PROJECTILE_MAX_DISTANCE = 80;
 
 const PROJECTILE_COLOR = 'rgb(255, 180, 60)';
 
@@ -19,6 +20,7 @@ export class WeaponSystem {
 
     this.projectiles = [];
     this.cooldown = 0;
+    this.raycaster = new THREE.Raycaster();
 
     this._buildWeapon();
     this._buildMuzzleFlash();
@@ -116,6 +118,7 @@ export class WeaponSystem {
     proj.position.copy(origin);
     proj.castShadow = false;
     proj.receiveShadow = false;
+    proj.userData.isProjectile = true;
 
     // Pequeno brilho ao redor (halo)
     const haloGeo = new THREE.SphereGeometry(PROJECTILE_RADIUS * 2.2, 8, 8);
@@ -125,6 +128,7 @@ export class WeaponSystem {
       opacity: 0.25
     });
     const halo = new THREE.Mesh(haloGeo, haloMat);
+    halo.userData.isProjectile = true;
     proj.add(halo);
 
     this.scene.add(proj);
@@ -132,7 +136,8 @@ export class WeaponSystem {
     this.projectiles.push({
       mesh: proj,
       velocity: direction.clone().multiplyScalar(PROJECTILE_SPEED),
-      life: PROJECTILE_LIFETIME
+      life: PROJECTILE_LIFETIME,
+      distance: 0
     });
 
     // Flash
@@ -141,6 +146,57 @@ export class WeaponSystem {
 
     return true;
   }
+
+  _getCollisionObjects() {
+    const objects = [];
+
+    this.scene.traverse(obj => {
+        if (!obj.isMesh) return;
+        if (!obj.visible) return;
+        if (obj.userData.isProjectile === true) return;
+        if (this.weapon === obj || this.weapon.getObjectById(obj.id)) return;
+
+        objects.push(obj);
+    });
+
+    return objects;
+}
+
+_checkProjectileCollision(projectile, movement) {
+    const distance = movement.length();
+    if (distance <= 0) return false;
+
+    const direction = movement.clone().normalize();
+
+    this.raycaster.set(projectile.mesh.position, direction);
+    this.raycaster.near = 0;
+    this.raycaster.far = distance + PROJECTILE_RADIUS;
+
+    const objects = this._getCollisionObjects();
+    const hits = this.raycaster.intersectObjects(objects, false);
+
+    return hits.length > 0;
+}
+
+_removeProjectile(index) {
+    const projectile = this.projectiles[index];
+
+    this.scene.remove(projectile.mesh);
+
+    projectile.mesh.traverse(obj => {
+        if (obj.geometry) obj.geometry.dispose();
+
+        if (obj.material) {
+            if (Array.isArray(obj.material)) {
+                obj.material.forEach(mat => mat.dispose());
+            } else {
+                obj.material.dispose();
+            }
+        }
+    });
+
+    this.projectiles.splice(index, 1);
+}
 
   // ------------------------------------------------------------
   // ATUALIZAÇÃO POR FRAME
@@ -166,17 +222,22 @@ export class WeaponSystem {
     // Projéteis
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
+      const movement = p.velocity.clone().multiplyScalar(delta);
+      const movementDistance = movement.length();
 
-      p.mesh.position.addScaledVector(p.velocity, delta);
+      if (this._checkProjectileCollision(p, movement)) {
+          this._removeProjectile(i);
+          continue;
+      }
+
+      p.mesh.position.add(movement);
+      p.distance += movementDistance;
       p.life -= delta;
 
-      if (p.life <= 0) {
-        this.scene.remove(p.mesh);
-        p.mesh.geometry.dispose();
-        p.mesh.material.dispose();
-        this.projectiles.splice(i, 1);
+      if (p.life <= 0 || p.distance >= PROJECTILE_MAX_DISTANCE) {
+          this._removeProjectile(i);
       }
-    }
+  }
   }
 
   // ------------------------------------------------------------
