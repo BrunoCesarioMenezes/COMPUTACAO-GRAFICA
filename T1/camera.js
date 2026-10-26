@@ -153,11 +153,9 @@ function onKeyUp(event) {
 }
 
 function onMouseDown(event) {
-    // Disparo: Botão esquerdo (0)
-    if (event.button === 0) {
-        if (!isOrbitMode && pointerControls.isLocked) {
-            shootProjectile();
-        }
+    // Disparo: qualquer botão do mouse
+    if (!isOrbitMode && pointerControls.isLocked) {
+        shootProjectile();
     }
 }
 
