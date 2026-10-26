@@ -1577,7 +1577,7 @@ function createGatehouse(
     {
 
       x:
-        -7.5,
+        -9,
 
       z:
         -0.5,
@@ -1613,7 +1613,7 @@ function createGatehouse(
     {
 
       x:
-        7.5,
+        9,
 
       z:
         -0.5,
@@ -1651,10 +1651,10 @@ function createGatehouse(
     openingHeight,
     z: -0.3
   });
-  // O mecanismo de colisão usa caixas delimitadoras e não reconhece o vazio
-  // interno produzido pelo CSG. As torres e molduras laterais já delimitam
-  // a passagem, então o bloco central deve ser apenas visual.
-  mainPortico.userData.noCollision = true;
+  // O corpo do pórtico permanece colidível para bloquear as paredes dos dois
+  // lados. O vão central continua livre pela collisionOpening criada no CSG e
+  // pelo corredor principal tratado no sistema de colisão.
+  mainPortico.userData.noCollision = false;
 
 
   // ==============================================================
@@ -2469,21 +2469,6 @@ export function createCastle(
   // Toda a fachada, a portaria e as aberturas das torres compartilham o
   // mesmo eixo. Não há retornos perpendiculares junto à entrada.
 
-  // O terreno original terminava no antigo alinhamento Z=-35. Esta faixa
-  // prolonga o pátio até a face interna da muralha agora centrada em Z=-42.
-  const frontCourtyardExtension = box(
-    root,
-    mats.grass,
-    75,
-    0.5,
-    7,
-    0,
-    -0.24,
-    -36
-  );
-  frontCourtyardExtension.name = 'Extensão do pátio até a muralha frontal';
-
-
   // ==============================================================
   // MURALHA TRASEIRA
   //
@@ -2996,13 +2981,13 @@ export function createCastle(
   root,
   mats.stoneLight,
 
-  8.0,
+  13.0,
   0.48,
-  5.0,
+  6.6,
 
-  31.0,
+  33.5,
   13.25,
-  -8.5
+  -7.8
 );
   eastWallLanding.name = 'Patamar superior da escada leste';
 
@@ -3011,12 +2996,12 @@ export function createCastle(
   const eastLandingSupport = box(
     root,
     mats.stoneDark,
-    8.0,
+    12.0,
     13.0,
-    3.4,
-    31.0,
+    8.0,
+    33.0,
     6.5,
-    -7.7
+    -7.8
   );
   eastLandingSupport.name = 'Apoio do patamar da escada leste';
 
@@ -3040,24 +3025,24 @@ export function createCastle(
   const westWallLanding = box(
     root,
     mats.stoneLight,
-    7.0,
+    8.2,
     0.48,
-    5.0,
+    6.6,
     -39.0,
     13.25,
-    8.5
+    7.8
   );
   westWallLanding.name = 'Patamar superior da escada oeste';
 
   const westLandingSupport = box(
     root,
     mats.stoneDark,
-    7.0,
+    8.2,
     13.0,
-    2.6,
+    7.0,
     -39.0,
     6.5,
-    7.3
+    7.8
   );
   westLandingSupport.name = 'Apoio do patamar da escada oeste';
 
@@ -3380,9 +3365,93 @@ function createHorizontalSurface(parent, material, points, y, name) {
 }
 
 
+function createCourtyardGround(parent, mats) {
+  // Faces internas das muralhas de espessura 6:
+  // x = +/-39, frente = -39 e fundo = 39. No lado leste, o contorno
+  // acompanha o recuo em L e exclui completamente a area externa a ele.
+  const west = -39;
+  const east = 39;
+  const front = -39;
+  const back = 39;
+  const recessInnerX = 36;
+  const recessFrontZ = -31;
+  const recessBackZ = -9;
+  const footprint = [
+    [west, front],
+    [east, front],
+    [east, recessFrontZ],
+    [recessInnerX, recessFrontZ],
+    [recessInnerX, recessBackZ],
+    [east, recessBackZ],
+    [east, back],
+    [west, back]
+  ];
+
+  const groundMaterial = mats.grass.clone();
+  groundMaterial.side = THREE.DoubleSide;
+
+  const ground = createHorizontalSurface(
+    parent,
+    groundMaterial,
+    footprint,
+    0.015,
+    'Terreno interno recortado pela projecao das muralhas'
+  );
+  ground.renderOrder = 1;
+
+  // O sistema de colisao trabalha com caixas delimitadoras. Tres caixas
+  // transparentes reproduzem a mesma forma concava sem sustentar o jogador
+  // sobre o vazio do recuo em L.
+  const colliderMaterial = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 0,
+    depthWrite: false
+  });
+  const colliderParts = [
+    {
+      minX: west,
+      maxX: recessInnerX,
+      minZ: front,
+      maxZ: back
+    },
+    {
+      minX: recessInnerX,
+      maxX: east,
+      minZ: front,
+      maxZ: recessFrontZ
+    },
+    {
+      minX: recessInnerX,
+      maxX: east,
+      minZ: recessBackZ,
+      maxZ: back
+    }
+  ];
+
+  for (const [index, part] of colliderParts.entries()) {
+    const collider = box(
+      parent,
+      colliderMaterial,
+      part.maxX - part.minX,
+      0.5,
+      part.maxZ - part.minZ,
+      (part.minX + part.maxX) / 2,
+      -0.24,
+      (part.minZ + part.maxZ) / 2
+    );
+    collider.name = `Colisor do terreno interno ${index + 1}`;
+    collider.castShadow = false;
+    collider.receiveShadow = false;
+    collider.userData.grassSupport = true;
+  }
+
+  return ground;
+}
+
+
 function createExternalAccess(parent, mats) {
   const water = mesh(
-    new THREE.PlaneGeometry(180, 180),
+    new THREE.PlaneGeometry(360, 360),
     mats.water,
     parent,
     0,
@@ -3393,10 +3462,9 @@ function createExternalAccess(parent, mats) {
   water.name = 'Plano-base de água';
   water.userData.noCollision = true;
 
-  // O piso interno fica contido entre as muralhas. Do lado de fora, o
-  // castelo nasce diretamente do plano de água, como no modelo de referência.
-  const courtyardFloor = box(parent, mats.grass, 75, 0.5, 72, 0, -0.24, 3.5);
-  courtyardFloor.name = 'Terreno interno do castelo';
+  // O piso segue a projecao interna do castelo, inclusive o recuo em L.
+  // Assim nenhuma faixa de grama ultrapassa as muralhas sobre a agua.
+  createCourtyardGround(parent, mats);
 
   const gateFloor = box(parent, mats.stoneLight, 7, 0.48, 15, 0, -0.11, -38.5);
   gateFloor.name = 'Piso contínuo sob o pórtico principal';
@@ -3407,6 +3475,8 @@ function createExternalAccess(parent, mats) {
 
   const platformGrass = box(parent, mats.grassDark, 14.4, 0.22, 33.4, 0, 0.10, -62.5);
   platformGrass.name = 'Vegetação da plataforma externa';
+  platformGrass.userData.noCollision = false;
+  platformGrass.userData.grassSupport = true;
 
   createHorizontalSurface(parent, mats.sand, [
     [-2.8, -45.8], [2.8, -45.8], [2.35, -56], [2.75, -66],
@@ -3452,6 +3522,8 @@ function createExternalAccess(parent, mats) {
   const islandGrass = cylinder(parent, mats.grassDark, 13, 0.24, 0, 0.11, -99.5, 48);
   islandGrass.scale.z = 0.72;
   islandGrass.name = 'Vegetação da ilha externa';
+  islandGrass.userData.noCollision = false;
+  islandGrass.userData.grassSupport = true;
 
   createHorizontalSurface(parent, mats.sand, [
     [-2.2, -89.6], [2.2, -89.6], [3.0, -94], [4.8, -99],
