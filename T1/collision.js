@@ -41,6 +41,7 @@ function getFloorBelow(position) {
     let bestFloor = null;
 
     for (const obj of meshes) {
+        if (obj.userData.isRamp === true) continue;
         const box = getBox(obj);
         if (!isOverBox(position, box, SUPPORT_MARGIN)) continue;
 
@@ -52,11 +53,38 @@ function getFloorBelow(position) {
     return bestFloor;
 }
 
+function getRampSurface(position) {
+    let bestRamp = null;
+
+    for (const obj of meshes) {
+        if (obj.userData.isRamp !== true || !obj.userData.ramp) continue;
+
+        const ramp = obj.userData.ramp;
+        const local = obj.parent.worldToLocal(position.clone());
+        const along = ramp.axis === 'z' ? local.z - ramp.z : local.x - ramp.x;
+        const across = ramp.axis === 'z' ? local.x - ramp.x : local.z - ramp.z;
+
+        if (Math.abs(across) > ramp.width / 2 + SUPPORT_MARGIN) continue;
+        if (along < -ramp.length / 2 - SUPPORT_MARGIN ||
+            along > ramp.length / 2 + SUPPORT_MARGIN) continue;
+
+        let t = THREE.MathUtils.clamp(along / ramp.length + 0.5, 0, 1);
+        if (ramp.direction < 0) t = 1 - t;
+
+        const localSurface = new THREE.Vector3(local.x, t * ramp.height, local.z);
+        const worldY = obj.parent.localToWorld(localSurface).y;
+        if (bestRamp === null || worldY > bestRamp) bestRamp = worldY;
+    }
+
+    return bestRamp;
+}
+
 function getStepSurface(position) {
     const footY = position.y - PLAYER_EYE_HEIGHT;
     let bestStep = null;
 
     for (const obj of meshes) {
+        if (obj.userData.isRamp === true) continue;
         const box = getBox(obj);
         if (!isOverBox(position, box)) continue;
 
@@ -91,13 +119,42 @@ function isOnStep(position) {
     return false;
 }
 
+function isInsideCollisionOpening(obj, position, footY, headY) {
+    const openings = obj.userData.collisionOpenings;
+    if (!Array.isArray(openings) || openings.length === 0) return false;
+
+    const local = obj.parent.worldToLocal(position.clone());
+
+    return openings.some(opening =>
+        local.x >= opening.minX + PLAYER_RADIUS &&
+        local.x <= opening.maxX - PLAYER_RADIUS &&
+        local.z >= opening.minZ + PLAYER_RADIUS &&
+        local.z <= opening.maxZ - PLAYER_RADIUS &&
+        footY >= opening.minY - FLOOR_TOLERANCE &&
+        headY <= opening.maxY + FLOOR_TOLERANCE
+    );
+}
+
+function isInsideMainGateCorridor(position, footY, headY) {
+    return Math.abs(position.x) <= 3.0 &&
+           position.z >= -48 && position.z <= -30 &&
+           footY >= -0.25 && headY <= 8.0;
+}
+
 function collisionAmount(position) {
     const footY = position.y - PLAYER_EYE_HEIGHT;
     const headY = position.y;
+
+    // O corredor central do portão é uma abertura intencional. As caixas
+    // envolventes dos detalhes CSG não representam o vazio visual do arco;
+    // por isso, dentro desta faixa, nenhuma delas deve bloquear a passagem.
+    if (isInsideMainGateCorridor(position, footY, headY)) return 0;
+
     let amount = 0;
 
     for (const obj of meshes) {
-        if (obj.userData.isStep === true) continue;
+        if (obj.userData.isStep === true || obj.userData.isRamp === true) continue;
+        if (isInsideCollisionOpening(obj, position, footY, headY)) continue;
 
         const box = getBox(obj);
 
@@ -156,9 +213,7 @@ function moveUpSmooth(camera, floorY, delta) {
 
     stairMode = true;
 
-    if (stairTargetY === null || targetY > stairTargetY) {
-        stairTargetY = targetY;
-    }
+    stairTargetY = targetY;
 
     smoothToHeight(camera, stairTargetY, STAIR_SMOOTH_SPEED, delta);
 
@@ -192,6 +247,13 @@ function fall(camera, floorY, delta) {
 
 function updateVertical(camera, delta) {
     const footY = camera.position.y - PLAYER_EYE_HEIGHT;
+    const rampY = getRampSurface(camera.position);
+
+    if (rampY !== null && verticalVelocity <= 0) {
+        moveUpSmooth(camera, rampY, delta);
+        return;
+    }
+
     const stepY = getStepSurface(camera.position);
 
     if (stepY !== null && verticalVelocity >= 0) {

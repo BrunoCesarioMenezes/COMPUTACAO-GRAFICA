@@ -36,13 +36,13 @@ export function setupCamera(renderer, scene) {
         0.05,
         1000
     );
-    camera.position.set(0, 2,-70); // Posição inicial em altura dos olhos
+    camera.position.set(0, 2.3, -101); // Início na ilha externa, voltado para o castelo
 
     pointerControls = new PointerLockControls(camera, renderer.domElement);
     orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.enabled = false;
 
-    camera.lookAt(0, 2.5, 0); // Olhando para frente na altura dos olhos
+    camera.lookAt(0, 2.5, -42); // Olhando para o pórtico principal
 
     
     // Ativa PointerLock ao clicar no canvas
