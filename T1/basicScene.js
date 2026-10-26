@@ -1,11 +1,16 @@
 import * as THREE from 'three';
 import { setupCamera, updateCamera, setShootHandler, getIsOrbitMode } from './camera.js';
-import { initRenderer, initDefaultBasicLight } from '../libs/util/util.js';
+import { initRenderer } from '../libs/util/util.js';
 import { createCastle } from './castle.js';
 import { updateDoors, toggleDoorByObject } from './doors.js';
 import { WeaponSystem } from './weapon.js';
+import { LightingSystem } from './lighting.js';
+import { KeySystem } from './keys.js';
+import { Portal } from './portal.js';
+import { EnemyManager } from './enemies.js';
 
 let scene, renderer, camera, castle, weaponSystem;
+let lighting, keySystem, portal, enemies;
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -21,8 +26,6 @@ function init() {
     renderer = initRenderer('rgb(150, 182, 204)');
     renderer.shadowMap.enabled = true;
 
-    initDefaultBasicLight(scene);
-
     castle = createCastle(scene);
     camera = setupCamera(renderer, scene);
 
@@ -34,6 +37,17 @@ function init() {
         if (!getIsOrbitMode()) weaponSystem.shoot();
     });
 
+    // Chaves, portal e inimigos
+    keySystem = new KeySystem(scene);
+    portal = new Portal(scene, keySystem, { parent: castle.root });
+    enemies = new EnemyManager(scene);
+
+    enemies.onEnemyKilled = (enemy, position) => keySystem.dropKey(position);
+    weaponSystem.onHit = hit => enemies.handleHit(hit);
+
+    // Iluminação dia/noite (tecla H) - inimigos só aparecem à noite
+    lighting = new LightingSystem(scene, renderer, { startAtNight: true });
+    lighting.onChange(isNight => enemies.setNight(isNight));
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
     renderer.domElement.addEventListener('contextmenu', event => event.preventDefault());
 
@@ -69,7 +83,9 @@ function createControlsMenu() {
         <div class="control-row"><span><b>W A S D</b></span><span>Movimentar</span></div>
         <div class="control-row"><span><b>Mouse</b></span><span>Olhar</span></div>
         <div class="control-row"><span><b>C</b></span><span>Trocar câmera</span></div>
-        <div class="control-row"><span><b>Clique Esquerdo</b></span><span>Atirar</span></div>
+        <div class="control-row"><span><b>Mouse (qualquer)</b></span><span>Atirar</span></div>
+        <div class="control-row"><span><b>K</b></span><span>Todas as chaves</span></div>
+        <div class="control-row"><span><b>H</b></span><span>Dia / Noite</span></div>
         <div class="control-row"><span><b>Clique Esquerdo</b></span><span>Portas (orbital)</span></div>
     `;
 
@@ -137,6 +153,10 @@ function render() {
         weaponSystem.update(delta);
         weaponSystem.setVisible(!getIsOrbitMode());
     }
+
+    enemies.update(delta, camera);
+    keySystem.update(delta, camera.position);
+    portal.update(delta, camera.position);
 
     renderer.render(scene, camera);
 }
